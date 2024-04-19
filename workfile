@@ -1,1 +1,105 @@
-import ˜
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import java.io.FileOutputStream;
+import java.util.Properties;
+
+public class EmailSender {
+    public static void main(String[] args) {
+        try {
+            // Read email addresses from Excel
+            Workbook workbook = new XSSFWorkbook(new FileInputStream("emails.xlsx"));
+            Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
+
+            for (Row row : sheet) {
+                Cell studentEmailCell = row.getCell(0); // Assuming student email is in the first column
+                Cell professorEmailCell = row.getCell(1); // Assuming professor email is in the second column
+                
+                String studentEmail = studentEmailCell.getStringCellValue();
+                String professorEmail = professorEmailCell.getStringCellValue();
+                
+                // Generate PDF file
+                String pdfFilePath = generatePDF();
+
+                // Compose email body
+                String emailBody = composeEmailBody();
+
+                // Send email with attached PDF
+                sendEmail(studentEmail, professorEmail, emailBody, pdfFilePath);
+            }
+
+            workbook.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String generatePDF() {
+        // Use iText or any other library to generate PDF
+        // Return the file path of the generated PDF
+        return "example.pdf";
+    }
+
+    private static String composeEmailBody() {
+        // Compose email body using a template
+        return "Dear [Recipient],\n\nPlease find attached the document.\n\nBest regards,\n[Your Name]";
+    }
+
+    private static void sendEmail(String studentEmail, String professorEmail, String emailBody, String pdfFilePath) {
+        // Email configuration
+        String host = "smtp.example.com"; // Your SMTP host
+        String username = "yourusername"; // Your SMTP username
+        String password = "yourpassword"; // Your SMTP password
+        String from = "you@example.com"; // Sender email address
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", "587");
+
+        // Authenticate the session
+        Session session = Session.getInstance(props, new Authenticator() {
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(username, password);
+            }
+        });
+
+        try {
+            // Create a new message
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(from));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(studentEmail)); // Set recipient to student
+            message.setSubject("Your Subject Here");
+
+            // Create the email body part
+            BodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setText(emailBody);
+
+            // Create the attachment
+            MimeBodyPart attachmentBodyPart = new MimeBodyPart();
+            attachmentBodyPart.attachFile(pdfFilePath);
+
+            // Create multipart email
+            Multipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+            multipart.addBodyPart(attachmentBodyPart);
+
+            // Set the email content
+            message.setContent(multipart);
+
+            // Send the message
+            Transport.send(message);
+
+            System.out.println("Email sent to " + studentEmail);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
