@@ -20,6 +20,27 @@ public class EmailSender {
         }
 
 //it_groups=group1,group2,group3
+
+public static String[] getGroups() {
+        // Load properties from application.properties file
+        Properties properties = loadProperties("application.properties");
+
+        // Get the it_groups property
+        String itGroupsString = properties.getProperty("it_groups");
+
+        // Split the it_groups string into an array
+        return itGroupsString.split(",");
+    }
+
+    private static Properties loadProperties(String fileName) {
+        Properties properties = new Properties();
+        try (InputStream inputStream = GroupChecker.class.getClassLoader().getResourceAsStream(fileName)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties;
+    }
 // Get the it_groups property
         String itGroupsString = properties.getProperty("it_groups");
         
