@@ -28,7 +28,12 @@ public static void main(String[] args) {
 
     private static Properties loadProperties(String fileName) {
         Properties properties = new Properties();
-        try (InputStream inputStream = MatchingMaker.class.getClassLoader().getResourceAsStream(fileName)) {
+        try {
+            InputStream inputStream = MatchingMaker.class.getClassLoader().getResourceAsStream(fileName);
+            if (inputStream == null) {
+                System.err.println("Unable to find " + fileName);
+                return properties;
+            }
             properties.load(inputStream);
         } catch (IOException e) {
             e.printStackTrace();
