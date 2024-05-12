@@ -19,6 +19,24 @@ public class EmailSender {
             e.printStackTrace();
         }
 
+//it_groups=group1,group2,group3
+// Get the it_groups property
+        String itGroupsString = properties.getProperty("it_groups");
+        
+        // Split the it_groups string into an array
+        String[] itGroupsArray = itGroupsString.split(",");
+        
+        // Convert the array to a list
+        List<String> itGroupsList = Arrays.asList(itGroupsArray);
+        
+        // Check if the parameter matches one of the array members
+        String parameter = "group2"; // Change this to your parameter
+        if (itGroupsList.contains(parameter)) {
+            System.out.println("Parameter matches one of the array members");
+        } else {
+            System.out.println("Parameter does not match any of the array members");
+        }
+    }
 public static void main(String[] args) {
         Properties properties = loadProperties("application.properties");
         // Use properties here
