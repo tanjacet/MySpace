@@ -12,6 +12,13 @@ import java.util.Properties;
 public class EmailSender {
     public static void main(String[] args) {
         try {
+        Properties properties = new Properties();
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("application.properties")) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
             // Read email addresses from Excel
             Workbook workbook = new XSSFWorkbook(new FileInputStream("emails.xlsx"));
             Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
