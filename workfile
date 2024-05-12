@@ -19,6 +19,23 @@ public class EmailSender {
             e.printStackTrace();
         }
 
+public static void main(String[] args) {
+        Properties properties = loadProperties("application.properties");
+        // Use properties here
+        String propertyValue = properties.getProperty("property.key");
+        System.out.println(propertyValue);
+    }
+
+    private static Properties loadProperties(String fileName) {
+        Properties properties = new Properties();
+        try (InputStream inputStream = MatchingMaker.class.getClassLoader().getResourceAsStream(fileName)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties;
+    }
+
             // Read email addresses from Excel
             Workbook workbook = new XSSFWorkbook(new FileInputStream("emails.xlsx"));
             Sheet sheet = workbook.getSheetAt(0); // Assuming data is in the first sheet
