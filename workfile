@@ -21,6 +21,71 @@ public class EmailSender {
 
 //it_groups=group1,group2,group3
 
+public enum ValueEnum {
+    AA(5), AB(10), AC(15), BA(25), BB(30), BC(35);
+
+    private final int value;
+
+    ValueEnum(int value) {
+        this.value = value;
+    }
+
+    public int getValue() {
+        return value;
+    }
+
+    public static ValueEnum fromString(String name) {
+        try {
+            return ValueEnum.valueOf(name);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid value name: " + name);
+        }
+    }
+}
+
+import java.util.EnumMap;
+import java.util.Map;
+
+public class Student {
+    private final Map<ValueEnum, Integer> values;
+
+    public Student(Map<ValueEnum, Integer> values) {
+        this.values = values;
+    }
+
+    public int getValue(ValueEnum key) {
+        return values.getOrDefault(key, 0);
+    }
+}
+
+public class Teacher {
+    private final Map<ValueEnum, Integer> values;
+
+    public Teacher(Map<ValueEnum, Integer> values) {
+        this.values = values;
+    }
+
+    public int getValue(ValueEnum key) {
+        return values.getOrDefault(key, 0);
+    }
+}
+
+public class ValueDifferenceCalculator {
+
+    public static Map<ValueEnum, Integer> calculateDifference(Student student, Teacher teacher) {
+        Map<ValueEnum, Integer> differences = new EnumMap<>(ValueEnum.class);
+
+        for (ValueEnum key : ValueEnum.values()) {
+            int studentValue = student.getValue(key);
+            int teacherValue = teacher.getValue(key);
+            int difference = studentValue - teacherValue;
+            differences.put(key, difference);
+        }
+
+        return differences;
+    }
+}
+
 public static boolean matchesParameter(Properties properties, String parameter) {
         // Get the it_groups property
         String itGroupsString = properties.getProperty("it_groups");
