@@ -18,7 +18,10 @@ public class EmailSender {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+     }
+    }
+}
+/*
 //it_groups=group1,group2,group3
 
 public enum ValueEnum {
@@ -257,7 +260,7 @@ public static void main(String[] args) {
 
     }
 }
-/*
+
 1. Create config.properties file:
 properties
 Code kopieren
@@ -396,5 +399,20 @@ class Teacher {
         return organization;
     }
 }
+
+private int matchCheck(String studentValue, String teacherValue, boolean shouldMatch) {
+        boolean isEqual = studentValue.equalsIgnoreCase(teacherValue);
+        return shouldMatch ? (isEqual ? 1 : 0) : (isEqual ? 0 : 1);
+    }
+
+    // Method for shouldMatchCheck
+    private int shouldMatchCheck(String studentValue, String teacherValue) {
+        return matchCheck(studentValue, teacherValue, true);
+    }
+
+    // Method for shouldNotMatchCheck
+    private int shouldNotMatchCheck(String studentValue, String teacherValue) {
+        return matchCheck(studentValue, teacherValue, false);
+    }
 /*
 
