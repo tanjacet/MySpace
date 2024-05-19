@@ -252,6 +252,149 @@ public static void main(String[] args) {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+
     }
 }
+/*
+1. Create config.properties file:
+properties
+Code kopieren
+app.name=Student-Teacher Matching App
+organization.keys=Biology1,Chemistry1,Physics1
+organization.Biology1=BG
+organization.Chemistry1=CH
+organization.Physics1=PH
+# Add more properties as needed
+2. Create ConfigProperties class:
+java
+Code kopieren
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class ConfigProperties {
+    private static final Properties properties = new Properties();
+
+    static {
+        // Load properties from the file
+        try (InputStream input = ConfigProperties.class.getClassLoader().getResourceAsStream("config.properties")) {
+            if (input == null) {
+                System.out.println("Sorry, unable to find config.properties");
+                return;
+            }
+
+            properties.load(input);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public static String getProperty(String key) {
+        return properties.getProperty(key);
+    }
+}
+3. Create OrganizationMapping class:
+java
+Code kopieren
+import java.util.HashMap;
+import java.util.Map;
+
+public class OrganizationMapping {
+    private static final Map<String, String> organizationMappings = new HashMap<>();
+
+    static {
+        // Populate the map with properties
+        for (String key : ConfigProperties.getProperty("organization.keys").split(",")) {
+            String value = ConfigProperties.getProperty("organization." + key);
+            if (value != null) {
+                organizationMappings.put(key, value);
+            }
+        }
+    }
+
+    public static String getMappedOrganization(String studentOrg) {
+        return organizationMappings.get(studentOrg);
+    }
+}
+4. Update GenerateScore class:
+java
+Code kopieren
+import java.util.ArrayList;
+
+public class GenerateScore {
+
+    // Method to check the match
+    public static int matchOrganization(Student student, Teacher teacher) {
+        String studentOrg = student.getOrganization();
+        String teacherOrg = teacher.getTeacherOrganization();
+
+        // If the student's organization is null or empty, ignore the match
+        if (studentOrg == null || studentOrg.isEmpty()) {
+            return -1;  // Or another value indicating ignored match
+        }
+
+        String mappedTeacherOrg = OrganizationMapping.getMappedOrganization(studentOrg);
+
+        // Check if the mapping exists and matches the teacher's organization
+        return mappedTeacherOrg != null && mappedTeacherOrg.equals(teacherOrg) ? 1 : 0;
+    }
+
+    // Method to generate scores for a list of students and a teacher
+    public static void generateScores(ArrayList<Student> students, Teacher teacher) {
+        for (Student student : students) {
+            int result = matchOrganization(student, teacher);
+            // Handle the result as needed
+            System.out.println("Match result for student: " + result);
+        }
+    }
+}
+5. Update Main class:
+java
+Code kopieren
+import java.util.ArrayList;
+
+public class Main {
+    public static void main(String[] args) {
+        // Example usage of properties
+        String appName = ConfigProperties.getProperty("app.name");
+        System.out.println("Application Name: " + appName);
+
+        ArrayList<Student> studentList = new ArrayList<>();
+        studentList.add(new Student("Biology1"));
+        studentList.add(new Student(null));  // Or new Student("") for empty organization
+
+        Teacher teacher = new Teacher("BG");
+
+        GenerateScore.generateScores(studentList, teacher);
+    }
+}
+
+// Sample Student class
+class Student {
+    private String organization;
+
+    public Student(String organization) {
+        this.organization = organization;
+    }
+
+    public String getOrganization() {
+        return organization;
+    }
+}
+
+// Sample Teacher class
+class Teacher {
+    private String organization;
+
+    public Teacher(String organization) {
+        this.organization = organization;
+    }
+
+    public String getTeacherOrganization() {
+        return organization;
+    }
+}
+/*
 
