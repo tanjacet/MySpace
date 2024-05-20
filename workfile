@@ -593,3 +593,189 @@ public class MatchingMakerCGPT {
   }
 }
 */
+
+/*
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+public class StudentTeacherMatching {
+
+    private final static String localPath = "TeacheringInput";
+    private final static String thisYear = "2024";
+
+    public static void main(String[] args) {
+        try {
+            String path = args.length > 0 ? args[0] : localPath;
+            String year = args.length > 1 ? args[1] : thisYear;
+            path = "/";
+
+            Properties appProperties = loadProperties("application.properties");
+            String propertyValue = appProperties.getProperty("orgArea.keys");
+            System.out.println("propertyValue: " + propertyValue);
+
+            ArrayList<OrgUnit> orgUnitStudents = loadOrgUnitData(path + "OrgStudents.xlsx");
+            ArrayList<OrgUnit> orgUnitTeachers = loadOrgUnitData(path + "OrgTeachers.xlsx");
+
+            ArrayList<Student> studentAll = loadStudentsData(path + "2024 StudentsSurvey.xlsx");
+            System.out.println("studentAll load size: " + studentAll.size());
+
+            ExclusionProcessor exclusionObject = new ExclusionProcessor();
+            ArrayList<Student> studentSubmitted = getSubmittedStudents(studentAll);
+            ArrayList<Student> studentUnSubmitted = getUnSubmittedStudents(studentAll);
+
+            System.out.println("studentSubmitted size: " + studentSubmitted.size());
+            System.out.println("studentUnSubmitted size: " + studentUnSubmitted.size());
+
+            ArrayList<Student> studentWithOrgInfo = extendWithOrgUnit(studentSubmitted, orgUnitStudents);
+            System.out.println("studentAddOrgInfo size: " + studentWithOrgInfo.size());
+
+            ArrayList<Student> studentInCountry = excludeCountryStudents(studentWithOrgInfo);
+            ArrayList<Student> studentQualified = excludeOtherStudents(studentInCountry);
+            System.out.println("studentExt after exclusion of country and other size: " + studentQualified.size());
+
+            ArrayList<Teacher> teacherAll = loadTeachersData(path + "2024 TeachersSurvey.xlsx");
+            System.out.println("teacherAll load size: " + teacherAll.size());
+
+            ArrayList<Teacher> teacherSubmitted = getSubmittedTeachers(teacherAll);
+            ArrayList<Teacher> teacherUnSubmitted = getUnSubmittedTeachers(teacherAll);
+
+            System.out.println("teacherSubmitted size: " + teacherSubmitted.size());
+            System.out.println("teacherUnSubmitted size: " + teacherUnSubmitted.size());
+
+            ArrayList<Teacher> teacherWithOrgInfo = extendWithOrgUnit(teacherSubmitted, orgUnitTeachers);
+            ArrayList<Teacher> teacherInCountry = excludeCountryTeachers(teacherWithOrgInfo);
+            ArrayList<Teacher> teacherQualified = teacherInCountry;
+
+            HashMap<Student, TeacherScore> bestMatches = BestScoresProcessor.generateBestMatchingScores(studentQualified, teacherQualified);
+            System.out.println("bestMatches key size: " + bestMatches.size());
+
+            ArrayList<String> matches = new ArrayList<>();
+            ArrayList<Teacher> bestTeachers = new ArrayList<>();
+            ArrayList<Student> bestStudents = new ArrayList<>();
+
+            for (Map.Entry<Student, TeacherScore> entry : bestMatches.entrySet()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(entry.getKey().toStringShort()).append(";");
+                sb.append(entry.getValue().getTeacher().toStringShort()).append(";").append(entry.getValue().getScore()).append(";");
+                matches.add(sb.toString());
+                bestStudents.add(entry.getKey());
+                bestTeachers.add(entry.getValue().getTeacher());
+                studentQualified.remove(entry.getKey());
+            }
+
+            System.out.println("MATCHED STUDENTS: " + bestStudents.size());
+            System.out.println("MATCHED TEACHERS: " + bestTeachers.size());
+
+            String[] matchingHeaders = {"ID Student", "First Name Student", "Last Name Student", "Email Student", "Level Student",
+                    "City Name Student", "Street Name Student", "Language English", "OrgArea", "Score"};
+
+            ExportMatchingResults matchToExcel = new ExportMatchingResults(path + "TeacherMatching_" + year + ".xlsx", matchingHeaders);
+            matchToExcel.matchingFileAll(matches, "TeacherMatching_" + year, matchingHeaders);
+
+            ResultsLists<Student> resultListStudent = new ResultsLists<>();
+            resultListStudent.setMentTypeUppercase("MENTEES");
+            resultListStudent.setBestTeachingTypes(bestStudents);
+            resultListStudent.setTeachingTypeALL(studentAll);
+            resultListStudent.setTeachingTypeQualified(studentQualified);
+            resultListStudent.setTeachingTypeUnSubmitted(studentUnSubmitted);
+
+            WriteTeachingResults<Student> wnStudent = new WriteTeachingResults<>(matchToExcel, year);
+            wnStudent.writeResultsTeachingType(matchToExcel, resultListStudent);
+
+            ResultsLists<Teacher> resultListTeacher = new ResultsLists<>();
+            resultListTeacher.setTeachingTypeUpperCase("MENTORS");
+            resultListTeacher.setBestTeachingTypes(bestTeachers);
+            resultListTeacher.setTeachingTypeALL(teacherAll);
+            resultListTeacher.setTeachingTypeQualified(teacherQualified);
+            resultListTeacher.setTeachingTypeUnSubmitted(teacherUnSubmitted);
+
+            WriteTeachingResults<Teacher> wnTeacher = new WriteTeachingResults<>(matchToExcel, year);
+            wnTeacher.writeResultsTeachingType(matchToExcel, resultListTeacher);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Properties loadProperties(String fileName) throws IOException {
+        Properties appProperties = new Properties();
+        try (InputStream inputStream = StudentTeacherMatching.class.getClassLoader().getResourceAsStream(fileName)) {
+            if (inputStream == null) {
+                System.err.println("Unable to find " + fileName);
+                return appProperties;
+            }
+            appProperties.load(inputStream);
+        }
+        return appProperties;
+    }
+
+    private static ArrayList<OrgUnit> loadOrgUnitData(String filePath) throws IOException {
+        LoadOrgUnitData loader = new LoadOrgUnitData(filePath);
+        return loader.getOrgUnit();
+    }
+
+    private static ArrayList<Student> loadStudentsData(String filePath) throws IOException {
+        LoadStudentsData loader = new LoadStudentsData(filePath);
+        return loader.getStudents();
+    }
+
+    private static ArrayList<Teacher> loadTeachersData(String filePath) throws IOException {
+        LoadTeachersData loader = new LoadTeachersData(filePath);
+        return loader.getTeachers();
+    }
+
+    private static ArrayList<Student> getSubmittedStudents(ArrayList<Student> students) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionNotSubmitted(students).get(0);
+    }
+
+    private static ArrayList<Student> getUnSubmittedStudents(ArrayList<Student> students) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionNotSubmitted(students).get(1);
+    }
+
+    private static ArrayList<Teacher> getSubmittedTeachers(ArrayList<Teacher> teachers) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionNotSubmitted(teachers).get(0);
+    }
+
+    private static ArrayList<Teacher> getUnSubmittedTeachers(ArrayList<Teacher> teachers) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionNotSubmitted(teachers).get(1);
+    }
+
+    private static ArrayList<Student> extendWithOrgUnit(ArrayList<Student> students, ArrayList<OrgUnit> orgUnits) {
+        ExtendTeachingInfo teachingInfo = new ExtendTeachingInfo();
+        return teachingInfo.extendWithOrgUnit(students, orgUnits);
+    }
+
+    private static ArrayList<Teacher> extendWithOrgUnit(ArrayList<Teacher> teachers, ArrayList<OrgUnit> orgUnits) {
+        ExtendTeachingInfo teachingInfo = new ExtendTeachingInfo();
+        return teachingInfo.extendWithOrgUnit(teachers, orgUnits);
+    }
+
+    private static ArrayList<Student> excludeCountryStudents(ArrayList<Student> students) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionCountry(students);
+    }
+
+    private static ArrayList<Student> excludeOtherStudents(ArrayList<Student> students) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionOther(students);
+    }
+
+    private static ArrayList<Teacher> excludeCountryTeachers(ArrayList<Teacher> teachers) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionCountry(teachers);
+    }
+
+    private static ArrayList<Teacher> excludeOtherTeachers(ArrayList<Teacher> teachers) {
+        ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+        return exclusionProcessor.exclusionOther(teachers);
+    }
+}*/
+
