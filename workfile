@@ -416,3 +416,180 @@ private int matchCheck(String studentValue, String teacherValue, boolean shouldM
     }
 /*
 
+/*
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+
+public class MatchingMakerCGPT {
+
+  private static final String LOCAL_PATH = "MentoringInput";
+  private static final String THIS_YEAR = "2024";
+
+  public static void main(String[] args) {
+    String path = args.length > 0 ? args[0] : LOCAL_PATH;
+    String year = args.length > 1 ? args[1] : THIS_YEAR;
+    path = "/";
+
+    Properties appProperties = loadProperties("application.properties");
+    String propertyValue = appProperties.getProperty("orgArea.keys");
+    System.out.println("propertyValue " + propertyValue);
+
+    ArrayList<OrgUnit> orgUnitMentees = loadOrgUnitData(path + "OrgMentees.xLsx");
+    ArrayList<OrgUnit> orgUnitMentors = loadOrgUnitData(path + "OrgMentors.xLsx");
+
+    ArrayList<Mentee> menteeAll = loadMenteesData(path + "2024 MenteesSurvey.xLsx");
+    System.out.println("menteeALL load size: " + menteeAll.size());
+
+    ArrayList<Mentee> menteeSubmitted = getSubmittedMentees(menteeAll);
+    System.out.println("menteeSubmitted size: " + menteeSubmitted.size());
+
+    ArrayList<Mentee> menteeUnSubmitted = getUnSubmittedMentees(menteeAll);
+    System.out.println("menteeUnSubmitted size: " + menteeUnSubmitted.size());
+
+    ArrayList<Mentee> menteeWithOrgInfo = extendWithOrgUnit(menteeSubmitted, orgUnitMentees);
+    System.out.println("menteeAddOrgInfo size: " + menteeWithOrgInfo.size());
+
+    ArrayList<Mentee> menteeInCountry = excludeCountryMentees(menteeWithOrgInfo);
+    ArrayList<Mentee> menteeQualified = excludeOtherMentees(menteeInCountry);
+    System.out.println("menteeExt after exclusion of country and other size: " + menteeQualified.size());
+
+    ArrayList<Mentor> mentorAll = loadMentorsData(path + "2024 MentorsSurvey.xls");
+    System.out.println("mentorALL load size: " + mentorAll.size());
+
+    ArrayList<Mentor> mentorSubmitted = getSubmittedMentors(mentorAll);
+    System.out.println("mentorSubmitted size: " + mentorSubmitted.size());
+
+    ArrayList<Mentor> mentorUnSubmitted = getUnSubmittedMentors(mentorAll);
+    System.out.println("mentorUnSubmitted size: " + mentorUnSubmitted.size());
+
+    ArrayList<Mentor> mentorWithOrgInfo = extendWithOrgUnit(mentorSubmitted, orgUnitMentors);
+    ArrayList<Mentor> mentorInCountry = excludeCountryMentors(mentorWithOrgInfo);
+    ArrayList<Mentor> mentorQualified = mentorInCountry;
+
+    HashMap<Mentee, MentorScore> bestMatches = BestScoresProcessor.generateBestMatchingScores(menteeQualified, mentorQualified);
+    System.out.println("bestMatches key size: " + bestMatches.size());
+
+    ArrayList<String> matches = new ArrayList<>();
+    ArrayList<Mentor> bestMentors = new ArrayList<>();
+    ArrayList<Mentee> bestMentees = new ArrayList<>();
+    for (Map.Entry<Mentee, MentorScore> entry : bestMatches.entrySet()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append(entry.getKey().toStringShort()).append(";");
+      sb.append(entry.getValue().getMentor().toStringShort()).append(";").append(entry.getValue().getScore()).append(";");
+      matches.add(sb.toString());
+      bestMentees.add(entry.getKey());
+      bestMentors.add(entry.getValue().getMentor());
+      menteeQualified.remove(entry.getKey());
+    }
+    System.out.println("MATCHED STUDENTS: " + bestMentees.size());
+    System.out.println("MATCHED TEACHERS: " + bestMentors.size());
+
+    String[] matchingHeaders = {"ID Mentee", "First Name Mentee", "Last Name Mentee", "Email Mentee", "Level Mentee",
+
+        "City Name Mentee", "Street Name Mentee", "Language English", "OrgArea", "Score"};
+    ExportMatchingResults matchToExcel = new ExportMatchingResults(path + "MentorMatching_" + year + ".xlsx", matchingHeaders);
+    matchToExcel.matchingFileAll(matches, "MentorMatching_" + year, matchingHeaders);
+
+    ResultsLists<Mentee> resultListMentee = new ResultsLists<>();
+    resultListMentee.setMentTypeUppercase("MENTEES");
+    resultListMentee.setBestMentoringTypes(bestMentees);
+    resultListMentee.setMentoringTypeALL(menteeAll);
+    resultListMentee.setMentoringTypeQualified(menteeQualified);
+    resultListMentee.setMentoringTypeUnSubmitted(menteeUnSubmitted);
+    WriteMentoringResults<Mentee> wnMentee = new WriteMentoringResults<>(matchToExcel, year);
+    wnMentee.writeResultsMentoringType(matchToExcel, resultListMentee);
+
+    ResultsLists<Mentor> resultListMentor = new ResultsLists<>();
+    resultListMentor.setMentoringTypeUpperCase("MENTORS");
+    resultListMentor.setBestMentoringTypes(bestMentors);
+    resultListMentor.setMentoringTypeALL(mentorAll);
+    resultListMentor.setMentoringTypeQualified(mentorQualified);
+    resultListMentor.setMentoringTypeUnSubmitted(mentorUnSubmitted);
+    WriteMentoringResults<Mentor> wnMentor = new WriteMentoringResults<>(matchToExcel, year);
+    wnMentor.writeResultsMentoringType(matchToExcel, resultListMentor);
+  }
+
+  private static Properties loadProperties(String fileName) {
+    Properties appProperties = new Properties();
+    try (InputStream inputStream = MatchingMakerCGPT.class.getClassLoader().getResourceAsStream(fileName)) {
+      if (inputStream == null) {
+        System.err.println("Unable to find " + fileName);
+        return appProperties;
+      }
+      appProperties.load(inputStream);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return appProperties;
+  }
+
+  private static ArrayList<OrgUnit> loadOrgUnitData(String filePath) {
+    LoadOrgUnitData loader = new LoadOrgUnitData(filePath);
+    return loader.getOrgUnit();
+  }
+
+  private static ArrayList<Mentee> loadMenteesData(String filePath) {
+    LoadMenteesData loader = new LoadMenteesData(filePath);
+    return loader.getMentees();
+  }
+
+  private static ArrayList<Mentor> loadMentorsData(String filePath) {
+    LoadMentorsData loader = new LoadMentorsData(filePath);
+    return loader.getMentors();
+  }
+
+  private static ArrayList<Mentee> getSubmittedMentees(ArrayList<Mentee> mentees) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.excLusionNotSubmitted(mentees).get(0);
+  }
+
+  private static ArrayList<Mentee> getUnSubmittedMentees(ArrayList<Mentee> mentees) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.excLusionNotSubmitted(mentees).get(1);
+  }
+
+  private static ArrayList<Mentor> getSubmittedMentors(ArrayList<Mentor> mentors) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionNotSubmitted(mentors).get(0);
+  }
+
+  private static ArrayList<Mentor> getUnSubmittedMentors(ArrayList<Mentor> mentors) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionNotSubmitted(mentors).get(1);
+  }
+
+  private static ArrayList<Mentee> extendWithOrgUnit(ArrayList<Mentee> mentees, ArrayList<OrgUnit> orgUnits) {
+    ExtendMentoringInfo teachingInfo = new ExtendMentoringInfo();
+    return teachingInfo.extendWithOrgUnit(mentees, orgUnits);
+  }
+
+  private static ArrayList<Mentor> extendWithOrgUnit(ArrayList<Mentor> mentors, ArrayList<OrgUnit> orgUnits) {
+    ExtendMentoringInfo teachingInfo = new ExtendMentoringInfo();
+    return teachingInfo.extendWithOrgUnit(mentors, orgUnits);
+  }
+
+  private static ArrayList<Mentee> excludeCountryMentees(ArrayList<Mentee> mentees) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionCountry(mentees);
+  }
+
+  private static ArrayList<Mentee> excludeOtherMentees(ArrayList<Mentee> mentees) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionOther(mentees);
+  }
+
+  private static ArrayList<Mentor> excludeCountryMentors(ArrayList<Mentor> mentors) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionCountry(mentors);
+  }
+
+  private static ArrayList<Mentor> excludeOtherMentors(ArrayList<Mentor> mentors) {
+    ExclusionProcessor exclusionProcessor = new ExclusionProcessor();
+    return exclusionProcessor.exclusionOther(mentors);
+  }
+}
+*/
