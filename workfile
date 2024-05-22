@@ -779,3 +779,44 @@ public class StudentTeacherMatching {
     }
 }*/
 
+/*
+public class StudentTeacherMatching {
+
+    private static String path = "default/path";  // Default path value
+    private static String year = String.valueOf(LocalDate.now().getYear());  // Default year to the current year
+
+    public static void main(String[] args) {
+        Options options = new Options();
+
+        Option pathOption = new Option("p", "path", true, "Path to the directory");
+        pathOption.setRequired(false);  // Not required, as we have a default
+        options.addOption(pathOption);
+
+        Option yearOption = new Option("y", "year", true, "Year of the survey");
+        yearOption.setRequired(false);  // Not required, as we have a default
+        options.addOption(yearOption);
+
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            if (cmd.hasOption("path")) {
+                path = cmd.getOptionValue("path");
+            }
+            if (cmd.hasOption("year")) {
+                year = cmd.getOptionValue("year");
+            }
+
+            runApplication();
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("utility-name", options);
+
+            System.exit(1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+*/
+
