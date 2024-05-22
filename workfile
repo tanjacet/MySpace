@@ -819,4 +819,52 @@ public class StudentTeacherMatching {
         }
     }
 */
+/*
+private static String path;
+    private static String year = String.valueOf(LocalDate.now().getYear());
 
+    public static void main(String[] args) {
+        // Determine the path where the JAR file is located
+        try {
+            Path jarPath = Paths.get(StudentTeacherMatching.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+            path = jarPath.toString() + System.getProperty("file.separator");  // Ensures path ends with the file separator
+        } catch (Exception e) {
+            e.printStackTrace();
+            path = "." + System.getProperty("file.separator");  // Fallback to the current directory
+        }
+
+        Options options = new Options();
+
+        Option pathOption = new Option("p", "path", true, "Path to the directory");
+        pathOption.setRequired(false);
+        options.addOption(pathOption);
+
+        Option yearOption = new Option("y", "year", true, "Year of the survey");
+        yearOption.setRequired(false);
+        options.addOption(yearOption);
+
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+
+        try {
+            CommandLine cmd = parser.parse(options, args);
+            if (cmd.hasOption("path")) {
+                path = cmd.getOptionValue("path");
+                if (!path.endsWith(System.getProperty("file.separator"))) {
+                    path += System.getProperty("file.separator");
+                }
+            }
+            if (cmd.hasOption("year")) {
+                year = cmd.getOptionValue("year");
+            }
+
+            runApplication();
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("utility-name", options);
+            System.exit(1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+*/
