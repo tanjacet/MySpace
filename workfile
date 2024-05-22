@@ -868,3 +868,34 @@ private static String path;
         }
     }
 */
+
+/*
+String path = System.getProperty("user.dir"); // Current working directory
+        String year = String.valueOf(Year.now().getValue()); // Current year
+
+        // Parse command-line arguments
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--path":
+                    if (i + 1 < args.length) {
+                        path = args[i + 1];
+                        i++; // Skip next argument as it's the value for this option
+                    } else {
+                        System.err.println("Missing value for --path");
+                        return;
+                    }
+                    break;
+                case "--year":
+                    if (i + 1 < args.length) {
+                        year = args[i + 1];
+                        i++; // Skip next argument as it's the value for this option
+                    } else {
+                        System.err.println("Missing value for --year");
+                        return;
+                    }
+                    break;
+                default:
+                    System.err.println("Unknown argument: " + args[i]);
+                    return;
+            }
+*/
