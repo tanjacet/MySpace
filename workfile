@@ -898,4 +898,87 @@ String path = System.getProperty("user.dir"); // Current working directory
                     System.err.println("Unknown argument: " + args[i]);
                     return;
             }
+atching
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+38
+39
+48 41 42 ^3 44 45 464
+6 8
+50
+51
+52
+53
+54
+55
+56
+67
+68
+69
+78
+71
+public class MatchingMaker (
+private final static String localPath = System. getProperty("user.dir"); // Current working directory
+private final static String thisYear = String-valueOf(LocalDate.now() -getYear());
+public static void main(String[] args) throws IOException {
+String path = args.length › 0 ? args[®] : localPath;
+String year = args. length › 1 ? args[1] : thisYear;
+String surveyMenteeFile = args. length › 2 ? args[2] : *231013 Mentees from UBS Survey.x15x";
+String surveyMentorFile = args. length › 3 ? args[3] : *231013 Mentors from UBS Survey.x1sx";
+String orgUnitMenteeFile = args.length › 4 ? args[4] : "OrgUnitMentees,xisx";
+String orgUnitMentorFile = args.length › 5 ? args[5] : "OrgUnitMentors.xlsx";
+path +="/"s
+//Load of OrgUnit and Survey data
+ArrayList‹Mentee> menteeAll= loadMenteesData(path + surveyMenteeFile);
+ArrayList Mentor> mentorAll = loadMentorsData(path + surveyMentorFile);
+ArrayList‹OrgUnit> orgUnitMentees = loadOrgUnitData(path + orgUnitMenteeFile);
+ArrayList‹OrgUnit> orgUnitMentors = loadOrgUnitData(path + orgUnitMentorFile);
+System. out. printin("TOTAL MENTEES:" + menteeA11. size());
+System. out. printin ("TOTAL MENTORS : " + mentorAll. size());
+ResultsLists<Mentee > inputListsMentee = new ResultsLists>();
+inputListsMentee.setParticipantUpperCase("MENTEES");
+inputListsMentee.setParticipantAll(menteeA11);
+inputListsMentee.setParticipantOrgUnit(orgUnitMentees);
+ResultsLists<Mentor> inputListsMentor = new ResultsLists‹>(); inputListsMentor.setParticipantUpperCase ("MENTORS"); inputListsMentor.setParticipantAll(mentorAll);
+inputListsMentor.setParticipantOrgUnit(orgUnitMentors);
+ListsProcessor<Mentee> processMenteeList = new ListsProcessor<>();
+ResultsLists<Mentee> resultListMentee = processMenteeList.processParticipantsLists(inputListsMentee);
+ListsProcessor<Mentor> processMentorList = new ListsProcessor«>);
+ResultsLists<Mentor> resultListMentor = processMentorList.processParticipantsLists(inputListsMentor);
+ArrayList‹Mentee > menteeQualified = resultListMentee getParticipantQualified);
+ArrayList‹Mentor> mentorQualified = resultListMentor getParticipantQualified();
+// bestMatches HashMap with MentorScore objects
+Hashmap Mentee, Mentorscore> bestMatches = BestScoresProcessor generateBestMatchingScores(menteeQualified, mentor@ualified);
+ArrayList<String> matches = new ArrayList<>();~
+ArrayList‹Mentor> bestMentors = new ArrayList‹>();
+ArrayList‹Mentee> bestMentees = new ArrayList<>();
+for (Map. Entry<Mentee, MentorScore> entry: bestMatches. entrySet()) (
+String sb = entry-getKey(). toStringShort() + ";" + entry-getValue () •getMentor().toStringShort() + ";" +
+entry-getValue() -getScore() + ";";
+matches.add (sb);
+bestMentees add (entry -getKey());
+bestMentors. add(entry. getValue() - getMentor));
+menteeQualified. remove(entry-getKey());
+System.out. println("MATCHED MENTEES:
++ bestMentees.size))j
+
 */
