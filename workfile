@@ -83,4 +83,34 @@ public class Main {
         System.out.println("Teacher details: " + resultListTeacher.getParticipantDetails());
     }
 }
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+try {
+    RestTemplate restTemplate = new RestTemplate(); // Assuming restTemplate is not already defined
+    HttpHeaders headers = new HttpHeaders(); // Assuming headers are not defined
+    headers.setContentType(MediaType.APPLICATION_JSON); // Example setting for headers
+    
+    ResponseEntity<HealthCheckResponse> responseEntity = restTemplate
+        .exchange(serverUrl + healthCheckApi,
+            HttpMethod.GET,
+            new HttpEntity<>(headers),
+            HealthCheckResponse.class);
+
+    if (responseEntity != null && responseEntity.getBody() != null) {
+        HealthCheckResponse body = responseEntity.getBody();
+        if (Status.FAIL.equals(body.getStatus())) {
+            log.error(String.format("Healthcheck error: %s", body));
+        }
+    } else {
+        log.warn("Response entity or body is null");
+    }
+} catch (Exception e) {
+    log.error(String.format("Error while calling Ripjar API: %s", e.getMessage()), e);
+}
+
 */
