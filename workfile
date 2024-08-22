@@ -1,124 +1,41 @@
 /*
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+public class Semaphore {
+  private int count;
 
+  public Semaphore(int initCount) {
+    this.count = initCount;
+  }
 
-ResponseEntity<MyStatusResponse> responseEntity = myApiResponseService.callMyPostApi(apiUrl, httpEntity);
-MyStatusResponse body = Optional.ofNullable(responseEntity.getBody())
-                                .orElseThrow(() -> new IllegalStateException("Empty response body: " + responseEntity));
-                                
-body.setResponseCode(responseEntity.getStatusCode());
-response = body;
+  public synchronized int getCount() {
+    return count;
+  }
 
-// Define the ResultsLists class with generics
-class ResultsLists<T> {
-    private String participantUpperCase;
-    private List<T> participantAll;
-    private String participantUnit;
-    private Map<String, Object> participantDetails = new HashMap<>();
-
-    public void setParticipantUpperCase(String participantUpperCase) {
-        this.participantUpperCase = participantUpperCase;
-        participantDetails.put("participantUpperCase", participantUpperCase);
+  public synchronized boolean trySemDown() {
+    if (count > 0) {
+      semDown();
+      return true;
     }
+    return false;
+  }
 
-    public void setParticipantAll(List<T> participantAll) {
-        this.participantAll = participantAll;
-        participantDetails.put("participantAll", participantAll);
+  public synchronized void semDown() {
+    while (count-- <= 0) {
+      try {
+        wait();
+      } catch (InterruptedException e) {
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        // Log the interruption and break the loop
+        System.err.println("Thread interrupted; semaphore integrity compromised.");
+        break;
+      }
     }
+  }
 
-    public void setParticipantUnit(String participantUnit) {
-        this.participantUnit = participantUnit;
-        participantDetails.put("participantUnit", participantUnit);
+  public synchronized void semUp() {
+    if (++count > 0) {
+      notifyAll(); // Use notifyAll() to wake up all waiting threads
     }
-
-    public Map<String, Object> getParticipantDetails() {
-        return participantDetails;
-    }
-
-    public void addParticipantDetail(String key, Object value) {
-        participantDetails.put(key, value);
-    }
+  }
 }
-
-// Define the ListsProcessor class with generics
-class ListsProcessor<T> {
-    public ResultsLists<T> processParticipantsLists(ResultsLists<T> inputLists) {
-        Map<String, Object> details = inputLists.getParticipantDetails();
-        // Example: Adding a new key-value pair to the details map
-        details.put("processed", true);
-        // Additional processing logic can be added here
-        return inputLists;
-    }
-}
-
-// Sample Student and Teacher classes
-class Student {
-    // Student specific properties and methods
-}
-
-class Teacher {
-    // Teacher specific properties and methods
-}
-
-// Main class to test the implementation
-public class Main {
-    public static void main(String[] args) {
-        List<Student> studentsAll = List.of(new Student());
-        List<Teacher> teachersAll = List.of(new Teacher());
-        String UnitStudents = "UnitStudents";
-        String unitTeachers = "UnitTeachers";
-
-        ResultsLists<Student> inputListsStudent = new ResultsLists<>();
-        inputListsStudent.setParticipantUpperCase("STUDENTS");
-        inputListsStudent.setParticipantAll(studentsAll);
-        inputListsStudent.setParticipantUnit(UnitStudents);
-
-        ResultsLists<Teacher> inputListsTeacher = new ResultsLists<>();
-        inputListsTeacher.setParticipantUpperCase("TEACHERS");
-        inputListsTeacher.setParticipantAll(teachersAll);
-        inputListsTeacher.setParticipantUnit(unitTeachers);
-
-        ListsProcessor<Student> processStudentList = new ListsProcessor<>();
-        ResultsLists<Student> resultListStudent = processStudentList.processParticipantsLists(inputListsStudent);
-
-        ListsProcessor<Teacher> processTeacherList = new ListsProcessor<>();
-        ResultsLists<Teacher> resultListTeacher = processTeacherList.processParticipantsLists(inputListsTeacher);
-
-        // Verify that the maps have been updated
-        System.out.println("Student details: " + resultListStudent.getParticipantDetails());
-        System.out.println("Teacher details: " + resultListTeacher.getParticipantDetails());
-    }
-}
-
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-
-try {
-    RestTemplate restTemplate = new RestTemplate(); // Assuming restTemplate is not already defined
-    HttpHeaders headers = new HttpHeaders(); // Assuming headers are not defined
-    headers.setContentType(MediaType.APPLICATION_JSON); // Example setting for headers
-    
-    ResponseEntity<HealthCheckResponse> responseEntity = restTemplate
-        .exchange(serverUrl + healthCheckApi,
-            HttpMethod.GET,
-            new HttpEntity<>(headers),
-            HealthCheckResponse.class);
-
-    if (responseEntity != null && responseEntity.getBody() != null) {
-        HealthCheckResponse body = responseEntity.getBody();
-        if (Status.FAIL.equals(body.getStatus())) {
-            log.error(String.format("Healthcheck error: %s", body));
-        }
-    } else {
-        log.warn("Response entity or body is null");
-    }
-} catch (Exception e) {
-    log.error(String.format("Error while calling Ripjar API: %s", e.getMessage()), e);
-}
-
 */
