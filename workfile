@@ -3,6 +3,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+ResponseEntity<MyStatusResponse> responseEntity = myApiResponseService.callMyPostApi(apiUrl, httpEntity);
+MyStatusResponse body = Optional.ofNullable(responseEntity.getBody())
+                                .orElseThrow(() -> new IllegalStateException("Empty response body: " + responseEntity));
+                                
+body.setResponseCode(responseEntity.getStatusCode());
+response = body;
+
 // Define the ResultsLists class with generics
 class ResultsLists<T> {
     private String participantUpperCase;
