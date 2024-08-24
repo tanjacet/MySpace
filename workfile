@@ -55,6 +55,11 @@ public class ResultsProcessor {
     private static final String NO_VALUE = "NO";
     private static final String YES_VALUE = "YES";
 
+      LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
+        String formattedDateTime = now.format(formatter);
+
+
     public static void main(String[] args) {
         File file = new File(FILE_NAME);
 
