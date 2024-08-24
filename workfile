@@ -38,4 +38,123 @@ public class Semaphore {
     }
   }
 }
+
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import java.io.*;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ResultsProcessor {
+
+    private static final String FILE_NAME = "Results.xlsx";
+    private static final String RENAMED_FILE_NAME = "Results.v1.xlsx";
+    private static final String NEW_FILE_NAME = "Results_new.xlsx";
+    private static final String NO_VALUE = "NO";
+    private static final String YES_VALUE = "YES";
+
+    public static void main(String[] args) {
+        File file = new File(FILE_NAME);
+
+        if (!file.exists()) {
+            System.out.println("File does not exist.");
+            return;
+        }
+
+        try (FileInputStream fis = new FileInputStream(file);
+             Workbook workbook = new XSSFWorkbook(fis)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            boolean foundNo = false;
+            List<String> noRowsFirstColumnValues = new ArrayList<>();
+            List<Row> yesRows = new ArrayList<>();
+            List<Row> noRows = new ArrayList<>();
+
+            // Iterate over the rows to find "NO" and "YES"
+            for (Row row : sheet) {
+                Cell cell = row.getCell(2); // 3rd column is index 2
+                if (cell != null && cell.getStringCellValue().equals(NO_VALUE)) {
+                    foundNo = true;
+                    noRows.add(row);
+                    noRowsFirstColumnValues.add(row.getCell(0).getStringCellValue());
+                } else if (cell != null && cell.getStringCellValue().equals(YES_VALUE)) {
+                    yesRows.add(row);
+                }
+            }
+
+            if (foundNo) {
+                // Rename the existing file
+                Files.move(Paths.get(FILE_NAME), Paths.get(RENAMED_FILE_NAME), StandardCopyOption.REPLACE_EXISTING);
+
+                // Create a new Results file with only "YES" rows
+                try (Workbook newWorkbook = new XSSFWorkbook()) {
+                    Sheet newSheet = newWorkbook.createSheet("Results");
+
+                    // Copy "YES" rows
+                    int rowIndex = 0;
+                    for (Row yesRow : yesRows) {
+                        Row newRow = newSheet.createRow(rowIndex++);
+                        copyRow(yesRow, newRow);
+                    }
+
+                    // Append "NO" rows to the new Results file
+                    for (Row noRow : noRows) {
+                        Row newRow = newSheet.createRow(rowIndex++);
+                        copyRow(noRow, newRow);
+                    }
+
+                    // Write to the new file
+                    try (FileOutputStream fos = new FileOutputStream(NEW_FILE_NAME)) {
+                        newWorkbook.write(fos);
+                    }
+                }
+
+                // Continue with other tasks using the data from "NO" rows
+                System.out.println("Processing complete. First column values of 'NO' rows:");
+                for (String value : noRowsFirstColumnValues) {
+                    System.out.println(value);
+                }
+
+            } else {
+                System.out.println("No rows with 'NO' found. No new file created.");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void copyRow(Row sourceRow, Row targetRow) {
+        for (int i = 0; i < sourceRow.getLastCellNum(); i++) {
+            Cell oldCell = sourceRow.getCell(i);
+            Cell newCell = targetRow.createCell(i);
+
+            if (oldCell == null) {
+                newCell.setCellValue("");
+                continue;
+            }
+
+            switch (oldCell.getCellType()) {
+                case STRING:
+                    newCell.setCellValue(oldCell.getStringCellValue());
+                    break;
+                case NUMERIC:
+                    newCell.setCellValue(oldCell.getNumericCellValue());
+                    break;
+                case BOOLEAN:
+                    newCell.setCellValue(oldCell.getBooleanCellValue());
+                    break;
+                case FORMULA:
+                    newCell.setCellFormula(oldCell.getCellFormula());
+                    break;
+                default:
+                    newCell.setCellValue("");
+            }
+        }
+    }
+}
+
+
 */
