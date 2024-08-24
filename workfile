@@ -58,7 +58,15 @@ public class ResultsProcessor {
       LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm");
         String formattedDateTime = now.format(formatter);
+        String newFileName = "Results_" + formattedDateTime + ".xlsx";
 
+        try {
+            // Rename the file
+            Files.move(Paths.get(ORIGINAL_FILE_NAME), Paths.get(newFileName), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("File renamed to: " + newFileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     public static void main(String[] args) {
         File file = new File(FILE_NAME);
