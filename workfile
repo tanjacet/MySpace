@@ -1,4 +1,19 @@
 /*
+
+
+objects.sort(Comparator.comparing(MyObject::getFirstParam)
+                .thenComparing(Comparator.comparing(MyObject::getSecondParam).reversed()));
+
+objects.sort(Comparator.comparing(MyObject::getFirstParam)
+                .thenComparing(Comparator.comparing(MyObject::getSecondParam).reversed()));
+
+objects.sort(Comparator.comparing(MyObject::getFirstParam)
+                .thenComparing(MyObject::getSecondParam)
+                .reversed());
+
+objects.sort(Comparator.comparing(MyObject::getFirstParam, Comparator.nullsLast(String::compareTo))
+                .thenComparing(MyObject::getSecondParam));
+
 public class Semaphore {
   private int count;
 
