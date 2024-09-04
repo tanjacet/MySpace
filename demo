@@ -1,0 +1,244 @@
+/*package presence.demo;
+import com.microsoft.graph.models.Presence;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class PresenceService {
+  private final PresenceServiceDemo demoPresenceService;
+  private final Map<String, Long> presenceDurations = new HashMap<>();
+  private LocalDateTime lastCheckTime = LocalDateTime.now();
+
+  @Autowired
+  public PresenceService(PresenceServiceDemo demoPresenceService) {
+    this.demoPresenceService = demoPresenceService;
+  }
+
+  //@Scheduled(fixedRate = 300000) // Every 5 minutes
+  @Scheduled(fixedRate = 60000) // Every 1 minute
+  public void fetchPresenceData() {
+    int retries = 10;
+
+    for (int i = 0; i < retries; i++) {
+      Presence presence = demoPresenceService.getDemoPresence();
+
+      String presenceStatus = presence.availability;
+
+      LocalDateTime now = LocalDateTime.now();
+      long timeSpent = java.time.Duration.between(lastCheckTime, now).toSeconds();
+      presenceDurations.merge(presenceStatus, timeSpent, Long::sum);
+
+      lastCheckTime = now;
+      System.out.println("Presence Status: " + presenceStatus);
+      // Simulate a delay for the next retry
+      try {
+        Thread.sleep(500); // 500 milliseconds delay between retries
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        System.out.println("Thread interrupted!");
+      }
+    }
+
+    System.out.println("Total Presence Durations After 10 Retries: ");
+    presenceDurations.forEach((status, duration) -> {
+      long minutes = TimeUnit.SECONDS.toMinutes(duration);
+      System.out.println(status + "=" + minutes + "min");
+    });
+  }
+}
+
+
+---
+  package presence.demo;
+
+import com.microsoft.graph.models.Presence;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PresenceServiceDemo {
+
+  public Presence getDemoPresence() {
+    Presence presence = new Presence();
+    presence.availability = PresenceStatus.getRandomStatus().getStatus();
+    return presence;
+  }
+}
+---
+  package presence.demo;
+
+import java.util.Random;
+
+public enum PresenceStatus {
+  AVAILABLE("available"),
+  AWAY("away"),
+  BUSY("busy"),
+  DO_NOT_DISTURB("doNotDisturb"),
+  OFFLINE("offline"),
+  UNKNOWN("unknown");
+
+  private final String status;
+
+  PresenceStatus(String status) {
+    this.status = status;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public static PresenceStatus
+  getRandomStatus() {
+    PresenceStatus [] statuses = values();
+    int randomIndex = new Random().nextInt(statuses.length);
+    return statuses[randomIndex];
+  }
+}
+
+----
+  package presence;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication
+@EnableScheduling
+public class TeamsActivityApplication {
+
+  public static void main(String[] args) {
+    SpringApplication.run(TeamsActivityApplication.class, args);
+  }
+}
+
+----
+  import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
+import com.microsoft.graph.models.UserActivity;
+import com.microsoft.graph.requests.GraphServiceClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+@Service
+public class ActivityService {
+
+  private final GraphServiceClient<?> graphClient;
+  private final Map<String, Long> activityDurations = new HashMap<>();
+  private LocalDateTime lastActivityCheckTime = LocalDateTime.now();
+
+  public ActivityService(@Value("${graph.client-id}") String clientId,
+                         @Value("${graph.tenant-id}") String tenantId,
+                         @Value("${graph.client-secret}") String clientSecret) {
+
+    ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
+        .clientId(clientId)
+        .clientSecret(clientSecret)
+        .tenantId(tenantId)
+        .build();
+
+    TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
+        Collections.singletonList("https://graph.microsoft.com/.default"),
+        clientSecretCredential
+    );
+
+    graphClient = GraphServiceClient.builder()
+        .authenticationProvider(authProvider)
+        .buildClient();
+  }
+
+  @Scheduled(fixedRate = 300000) // Every 5 minutes
+  public void fetchActivityData() {
+    // Fetch the activities
+    List<UserActivity> activities = Objects.requireNonNull(graphClient.me().activities().buildRequest().get()).getCurrentPage();
+
+    LocalDateTime now = LocalDateTime.now();
+    long timeSpent = java.time.Duration.between(lastActivityCheckTime, now).toMinutes();
+
+    for (UserActivity activity : activities) {
+      activityDurations.merge(activity.appActivityId, timeSpent, Long::sum);
+    }
+
+    lastActivityCheckTime = now;
+
+    // Output the current totals
+    System.out.println("Activity Durations: " + activityDurations);
+  }
+}
+
+---
+  import com.azure.identity.ClientSecretCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
+import com.microsoft.graph.models.Presence;
+import com.microsoft.graph.requests.GraphServiceClient;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Collections;
+
+@Service
+public class PresenceService {
+
+  private final GraphServiceClient<?> graphClient;
+
+  private final Map<String, Long> presenceDurations = new HashMap<>();
+  private LocalDateTime lastCheckTime = LocalDateTime.now();
+
+  public PresenceService(@Value("${graph.client-id}") String clientId,
+                         @Value("${graph.tenant-id}") String tenantId,
+                         @Value("${graph.client-secret}") String clientSecret) {
+
+    ClientSecretCredential clientSecretCredential = new ClientSecretCredentialBuilder()
+        .clientId(clientId)
+        .clientSecret(clientSecret)
+        .tenantId(tenantId)
+        .build();
+
+    TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
+        Collections.singletonList("https://graph.microsoft.com/.default"),
+        clientSecretCredential
+    );
+
+    graphClient = GraphServiceClient.builder()
+        .authenticationProvider(authProvider)
+        .buildClient();
+  }
+
+  @Scheduled(fixedRate = 300000) // Every 5 minutes
+  public void fetchPresenceData() {
+    Presence presence = graphClient.me().presence().buildRequest().get();
+
+    String presenceStatus = presence.availability;
+
+    LocalDateTime now = LocalDateTime.now();
+    long timeSpent = java.time.Duration.between(lastCheckTime, now).toMinutes();
+    presenceDurations.merge(presenceStatus, timeSpent, Long::sum);
+
+    lastCheckTime = now;
+
+    // Output the current totals
+    System.out.println("Presence Status: " + presenceStatus);
+    System.out.println("Presence Durations: " + presenceDurations);
+  }
+}
+
+
+---
+  graph.client-id=YOUR_CLIENT_ID
+graph.tenant-id=YOUR_TENANT_ID
+graph.client-secret=YOUR_CLIENT_SECRET
+  ---
+  */
