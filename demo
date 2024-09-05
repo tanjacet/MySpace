@@ -306,4 +306,68 @@ graph.client-secret=YOUR_CLIENT_SECRET
 </project>
 
 
+package com.example.teamsactivity.model;
+
+import java.util.Random;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public enum PresenceStatus {
+
+    AVAILABLE("available", 10),
+    AWAY("away", 3),
+    BUSY("busy", 1),
+    DO_NOT_DISTURB("doNotDisturb", 1),
+    OFFLINE("offline", 2),
+    UNKNOWN("unknown", 0);
+
+    private final String status;
+    private final int weight;
+
+    PresenceStatus(String status, int weight) {
+        this.status = status;
+        this.weight = weight;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public int getWeight() {
+        return weight;
+    }
+
+    /**
+     * Get the enum constant from the string status.
+     * 
+     * @param status the string representation of the status
+     * @return the corresponding PresenceStatus, or UNKNOWN if not found
+     */
+    public static PresenceStatus fromStatus(String status) {
+        for (PresenceStatus presenceStatus : values()) {
+            if (presenceStatus.getStatus().equalsIgnoreCase(status)) {
+                return presenceStatus;
+            }
+        }
+        return UNKNOWN;
+    }
+
+    /**
+     * Selects a random presence status based on their weights.
+     * 
+     * @return a random PresenceStatus based on weights
+     */
+    public static PresenceStatus getRandomWeightedStatus() {
+        List<PresenceStatus> statuses = Arrays.stream(values())
+                .filter(status -> status.getWeight() > 0) // Ignore UNKNOWN with 0 weight
+                .flatMap(status -> Arrays.stream(new PresenceStatus[status.getWeight()])
+                                         .map(s -> status))
+                .collect(Collectors.toList());
+
+        Random random = new Random();
+        return statuses.get(random.nextInt(statuses.size()));
+    }
+}
+
   */
