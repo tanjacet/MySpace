@@ -1,0 +1,60 @@
+import http.client
+import json
+import ssl
+
+def fetch_data():
+    # Server details
+    host = "example.com"
+    url = "/api/data"
+    port = 443  # Standard HTTPS port
+
+    # The payload containing the POST data (filters like limit, skip, sort, etc.)
+    payload = {
+        "limit": 0,
+        "skip": 0,
+        "sort": {"id": 1}  # Sorting by ID in ascending order
+    }
+    json_payload = json.dumps(payload)
+
+    # Custom SSL context to handle certificate verification and client authentication
+    context = ssl.create_default_context(cafile="/path/to/ca-bundle.crt")  # Path to CA bundle
+
+    # If client authentication is required, provide the client certificate and key
+    context.load_cert_chain(certfile="/path/to/client-cert.pem", keyfile="/path/to/client-key.pem")
+
+    try:
+        # Create an HTTPS connection to the server
+        conn = http.client.HTTPSConnection(host, port, context=context)
+
+        # Set headers for the request
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+        # Send the POST request with the JSON payload
+        conn.request("POST", url, body=json_payload, headers=headers)
+
+        # Get the response from the server
+        response = conn.getresponse()
+
+        # Read and decode the response data
+        data = response.read().decode('utf-8')
+
+        # Check the status code and print the response
+        if response.status == 200:
+            json_data = json.loads(data)
+            print(json.dumps(json_data, indent=4))  # Pretty-printing the JSON response
+        else:
+            print(f"Request failed with status code {response.status}")
+
+    except ssl.SSLError as ssl_error:
+        print(f"SSL error occurred: {ssl_error}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Always close the connection
+        conn.close()
+
+# Run the function to fetch data
+fetch_data()
