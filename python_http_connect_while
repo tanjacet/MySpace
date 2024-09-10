@@ -251,8 +251,10 @@ def fetch_data():
             # Get the response from the server
             response = conn.getresponse()
 
-            # Read and decode the raw response
-            raw_data = response.read().decode('utf-8')
+            # Read the raw response
+            raw_data = response.read()  # Read as bytes
+
+            # Decode raw data to string
             raw_data_str = raw_data.decode('utf-8')
 
             # Write raw data to file
