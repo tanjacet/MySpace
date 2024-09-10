@@ -253,6 +253,7 @@ def fetch_data():
 
             # Read and decode the raw response
             raw_data = response.read().decode('utf-8')
+            raw_data_str = raw_data.decode('utf-8')
 
             # Write raw data to file
             with open(raw_data_file, "a") as file:
