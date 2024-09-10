@@ -200,7 +200,6 @@ def fetch_data():
 
 # Run the function to fetch data
 fetch_data()
-
 import http.client
 import json
 import ssl
@@ -259,13 +258,13 @@ def fetch_data():
 
             # Write raw data to file
             with open(raw_data_file, "a") as file:
-                file.write(raw_data + "\n")  # Append raw data to the file
+                file.write(raw_data_str + "\n")  # Append raw data to the file
 
             # Check the status code
             if response.status == 200:
                 try:
                     # Try to parse the JSON data
-                    json_data = json.loads(raw_data)
+                    json_data = json.loads(raw_data_str)
                     
                     # Handle response based on its structure
                     if isinstance(json_data, list):
@@ -302,7 +301,7 @@ def fetch_data():
                     break
 
             else:
-                print(f"Request failed with status code {response.status}: {raw_data}")
+                print(f"Request failed with status code {response.status}: {raw_data_str}")
                 break
 
         except ssl.SSLError as ssl_error:
@@ -322,3 +321,4 @@ def fetch_data():
 
 # Run the function to fetch data
 fetch_data()
+
