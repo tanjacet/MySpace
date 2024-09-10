@@ -219,3 +219,81 @@ def fetch_data():
 
 # Run the function to fetch data
 fetch_data()
+
+import http.client
+import json
+import ssl
+
+def fetch_data():
+    # Server details
+    host = "example.com"  # Replace with your actual host
+    url = "/api/data"  # Replace with the correct endpoint
+    port = 443  # HTTPS port
+
+    # The payload containing the POST data (filters like limit, skip, sort, etc.)
+    payload = {
+        "limit": 0,
+        "skip": 0,
+        "sort": {"id": 1}  # Sorting by ID in ascending order
+    }
+    
+    json_payload = json.dumps(payload)
+
+    # Custom SSL context to handle certificate verification and client authentication
+    context = ssl.create_default_context(cafile="/path/to/ca-bundle.crt")  # Path to CA bundle
+    
+    # If client authentication is required, provide the client certificate and key
+    context.load_cert_chain(certfile="/path/to/client-cert.pem", keyfile="/path/to/client-key.pem")
+    
+    try:
+        # Create an HTTPS connection to the server
+        conn = http.client.HTTPSConnection(host, port, context=context)
+
+        # Set headers for the request
+        headers = {
+            "Content-Type": "application/json",  # Ensure the Content-Type is JSON
+            "Accept": "application/json"  # Expecting JSON response
+        }
+
+        # Send the POST request with the JSON payload
+        conn.request("POST", url, body=json_payload, headers=headers)
+
+        # Get the response from the server
+        response = conn.getresponse()
+
+        # Read and decode the raw response
+        raw_data = response.read().decode('utf-8')
+
+        # Print the raw response for debugging
+        print(f"Raw Response: {raw_data}")
+
+        # Check content type
+        content_type = response.getheader('Content-Type')
+        print(f"Content-Type: {content_type}")
+
+        # Check if the response is JSON or something else
+        if response.status == 200:
+            if 'application/json' in content_type:
+                try:
+                    # Try to parse the JSON data
+                    json_data = json.loads(raw_data)
+                    print("Parsed JSON response:")
+                    print(json.dumps(json_data, indent=4))  # Pretty-printing the JSON response
+                except json.JSONDecodeError as json_error:
+                    print(f"Error decoding JSON: {json_error}")
+            else:
+                # The response is not JSON, so print it as is
+                print(f"Response is not in JSON format. Raw data:\n{raw_data}")
+        else:
+            print(f"Request failed with status code {response.status}: {raw_data}")
+
+    except ssl.SSLError as ssl_error:
+        print(f"SSL error occurred: {ssl_error}")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Always close the connection
+        conn.close()
+
+# Run the function to fetch data
+fetch_data()
