@@ -88,3 +88,115 @@ def fetch_data():
 
 # Run the function to fetch data
 fetch_data()
+
+import http.client
+import json
+import ssl
+
+def fetch_data():
+    # Server details
+    host = "example.com"  # Replace with your actual host
+    url = "/api/data"  # Replace with the correct endpoint
+    port = 443  # HTTPS port
+
+    # Pagination parameters
+    limit = 3000
+    skip = 0
+    all_records = []
+    total_records_fetched = 0
+
+    # Custom SSL context to handle certificate verification and client authentication
+    context = ssl.create_default_context(cafile="/path/to/ca-bundle.crt")  # Path to CA bundle
+    
+    # If client authentication is required, provide the client certificate and key
+    context.load_cert_chain(certfile="/path/to/client-cert.pem", keyfile="/path/to/client-key.pem")
+
+    while True:
+        # The payload containing the POST data (filters like limit, skip, sort, etc.)
+        payload = {
+            "limit": limit,
+            "skip": skip,
+            "sort": {"id": 1}  # Sorting by ID in ascending order
+        }
+        
+        json_payload = json.dumps(payload)
+
+        try:
+            # Create an HTTPS connection to the server
+            conn = http.client.HTTPSConnection(host, port, context=context)
+
+            # Set headers for the request
+            headers = {
+                "Content-Type": "application/json"  # Ensure the Content-Type is JSON
+            }
+
+            # Send the POST request with the JSON payload
+            conn.request("POST", url, body=json_payload, headers=headers)
+
+            # Get the response from the server
+            response = conn.getresponse()
+
+            # Read and decode the raw response
+            raw_data = response.read().decode('utf-8')
+
+            # Check the status code
+            if response.status == 200:
+                try:
+                    # Try to parse the JSON data
+                    json_data = json.loads(raw_data)
+                    
+                    # Handle response based on its structure
+                    if isinstance(json_data, list):
+                        # If the response is a list of records
+                        num_records = len(json_data)
+                        all_records.extend(json_data)
+                        total_records_fetched += num_records
+
+                        # If the number of fetched records is less than the limit, stop fetching
+                        if num_records < limit:
+                            break
+
+                    elif isinstance(json_data, dict):
+                        # Handle case where response is a dictionary (e.g., contains metadata)
+                        records = json_data.get('records', [])
+                        num_records = len(records)
+                        all_records.extend(records)
+                        total_records_fetched += num_records
+
+                        # Check if more records are available (e.g., based on 'has_more' or 'total' count)
+                        has_more = json_data.get('has_more', False)
+                        if not has_more:
+                            break
+
+                    else:
+                        print(f"Unexpected response format: {type(json_data)}")
+                        break
+
+                    # Increment the skip parameter for the next batch
+                    skip += limit
+
+                except json.JSONDecodeError as json_error:
+                    print(f"Error decoding JSON: {json_error}")
+                    break
+
+            else:
+                print(f"Request failed with status code {response.status}: {raw_data}")
+                break
+
+        except ssl.SSLError as ssl_error:
+            print(f"SSL error occurred: {ssl_error}")
+            break
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            break
+        finally:
+            # Always close the connection
+            conn.close()
+
+    # Print or process all fetched records
+    print(f"Total records fetched: {total_records_fetched}")
+    # Uncomment the line below to print all records
+    # print(json.dumps(all_records, indent=4))
+
+# Run the function to fetch data
+fetch_data()
