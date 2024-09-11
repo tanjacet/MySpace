@@ -294,3 +294,24 @@ if __name__ == "__main__":
     fetch_data(data_path=args.data, debug=args.debug)
 
 python script.py users --debug
+
+# Main function to handle argument parsing
+if __name__ == "__main__":
+    # Argument parser setup
+    parser = argparse.ArgumentParser(description="Fetch data from the API using a data path and debugging options.")
+    
+    # Optional argument for the data path (endpoint) with a default value
+    parser.add_argument(
+        "--data", 
+        default="data",  # Default value for the data path
+        help="The API data path (endpoint) to fetch data from (default: 'data' for '/api/data')"
+    )
+    
+    # Optional debug flag
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode with verbose output")
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Call the function with the parsed arguments
+    fetch_data(data_path=args.data, debug=args.debug)
