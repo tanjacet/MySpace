@@ -292,3 +292,5 @@ if __name__ == "__main__":
 
     # Call the function with the parsed arguments
     fetch_data(data_path=args.data, debug=args.debug)
+
+python script.py users --debug
