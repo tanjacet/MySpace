@@ -315,3 +315,60 @@ if __name__ == "__main__":
 
     # Call the function with the parsed arguments
     fetch_data(data_path=args.data, debug=args.debug)
+
+#### mkdir 
+import errno
+import os
+from datetime import datetime
+
+def filecreation(list, filename):
+    mydir = os.path.join(
+        os.getcwd(), 
+        datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+    try:
+        os.makedirs(mydir)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise  # This was not a "directory exist" error..
+    with open(os.path.join(mydir, filename), 'w') as d:
+        d.writelines(list)
+## or
+# using with statement
+with open('file_path', 'w') as file:
+    file.write('hello world !')
+
+### scheduler
+import schedule
+import time
+
+# Define a function to print a message
+
+
+def print_message():
+    print("Hello! It's time to code on GFG")
+
+
+# Schedule the task to run every day at 7:00 AM
+schedule.every().day.at("10:35").do(print_message)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+
+## or
+import schedule
+import time
+
+
+def print_message():
+    print("Task executed at:", time.strftime("%H:%M:%S"))
+
+
+# Schedule task to run every 5 seconds
+schedule.every(5).seconds.do(print_message)
+
+# Keep the program running to allow scheduled tasks to execute
+while True:
+    schedule.run_pending()
+    time.sleep(1)
