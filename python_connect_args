@@ -410,3 +410,30 @@ def safe_convert(x):
 
 # Apply the conversion function safely
 data['created'] = data['created'].apply(safe_convert)
+
+import datetime as dt
+import pandas as pd
+from pandas import json_normalize
+
+# Example usage if loading JSON data
+# Assuming each line in the file is a separate JSON object
+with open('file.json', 'r') as f:
+    data = pd.DataFrame([json_normalize(json.loads(line)) for line in f])
+
+def safe_convert(x):
+    # Check if x is None or not an integer
+    if x is None:
+        return None
+    elif isinstance(x, int):
+        try:
+            # Attempt to convert the timestamp
+            return dt.datetime.fromtimestamp(x / 1000)
+        except (TypeError, ValueError):
+            # Return None if there's an error during conversion
+            return None
+    else:
+        # Return the original value if it's not an integer
+        return x
+
+# Apply the conversion function safely
+data['created'] = data['created'].apply(safe_convert)
