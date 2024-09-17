@@ -372,3 +372,14 @@ schedule.every(5).seconds.do(print_message)
 while True:
     schedule.run_pending()
     time.sleep(1)
+
+####
+import datetime as dt
+
+def safe_convert(x):
+    try:
+        return dt.datetime.fromtimestamp(x / 1000) if isinstance(x, int) else x
+    except (TypeError, ValueError):
+        return x
+
+data['created'] = data['created'].apply(safe_convert)
