@@ -1,4 +1,5 @@
-import http.client
+
+####import http.client
 import json
 import ssl
 import argparse
@@ -433,6 +434,44 @@ def safe_convert(x):
             return None
     else:
         # Return the original value if it's not an integer
+        return x
+
+# Apply the conversion function safely
+data['created'] = data['created'].apply(safe_convert)
+
+####
+import datetime as dt
+import pandas as pd
+from pandas import json_normalize
+import json
+
+# Load data from JSON file while handling empty lines
+def load_json_data(file_path):
+    with open(file_path, 'r') as f:
+        data = []
+        for line in f:
+            line = line.strip()  # Remove leading and trailing whitespace
+            if line:  # Ensure the line is not empty
+                try:
+                    json_data = json.loads(line)
+                    data.append(json_normalize(json_data))
+                except json.JSONDecodeError:
+                    print(f"Skipping invalid JSON line: {line}")
+        return pd.concat(data, ignore_index=True)
+
+# Load the data
+data = load_json_data('file.json')
+
+# Conversion function to safely handle the 'created' column
+def safe_convert(x):
+    if x is None:
+        return None
+    elif isinstance(x, int):
+        try:
+            return dt.datetime.fromtimestamp(x / 1000)
+        except (TypeError, ValueError):
+            return None
+    else:
         return x
 
 # Apply the conversion function safely
