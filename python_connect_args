@@ -488,3 +488,9 @@ with open('output.json', 'w') as f:
         json.dump(item, f)
         if i < len(data_to_export) - 1:
             f.write('\n')  # Write newline only if it's not the last item
+
+import datetime as dt
+
+data['created'] = data['created'].apply(
+    lambda x: dt.datetime.fromtimestamp(x / 1000) if isinstance(x, int) else x
+)
