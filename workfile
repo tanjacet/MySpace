@@ -220,3 +220,66 @@ public boolean runProcess(String shellCommand, String processDisplayName) {
         }
     }
 }
+
+
+////
+public boolean runProcess(String shellCommand, String processDisplayName) {
+    ProcessLauncher processLauncher = processLauncherSupplier.get();
+    processLauncher.command("bash", "-c", shellCommand);
+    Process process = null;
+    try {
+        process = processLauncher.start();
+        int exitVal = process.waitFor(); // This line throws InterruptedException
+        return EXIT_SUCCESS == exitVal;
+    } catch (InterruptedException e) {
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        log.error("Process was interrupted: " + e.getMessage(), e);
+        return false;
+    } catch (IOException e) {
+        log.error("I/O error occurred while running the process: " + e.getMessage(), e);
+        return false;
+    } catch (Exception e) { // Catch all other exceptions
+        log.error("Unexpected error while running the process: " + e.getMessage(), e);
+        return false;
+    } finally {
+        if (process != null) {
+            try {
+                process.destroy();
+            } catch (Exception e) {
+                log.error("Cannot destroy process: " + e.getMessage(), e);
+            }
+        }
+    }
+}
+//
+public boolean runProcess(String shellCommand, String processDisplayName) {
+    ProcessLauncher processLauncher = processLauncherSupplier.get();
+    processLauncher.command("bash", "-c", shellCommand);
+    Process process = null;
+    try {
+        process = processLauncher.start();
+        int exitVal = process.waitFor(); // This line throws InterruptedException
+        return EXIT_SUCCESS == exitVal;
+    } catch (InterruptedException e) {
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        log.error("Process was interrupted: " + e.getMessage(), e);
+        return false;
+    } catch (IOException e) {
+        log.error("I/O error occurred while running the process: " + e.getMessage(), e);
+        return false;
+    } catch (Throwable t) {
+        log.error("Unexpected throwable caught while running the process: " + t.getMessage(), t);
+        return false;
+    } finally {
+        if (process != null) {
+            try {
+                process.destroy();
+            } catch (Throwable t) {
+                log.error("Cannot destroy process: " + t.getMessage(), t);
+            }
+        }
+    }
+}
+//
