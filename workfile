@@ -282,4 +282,31 @@ public boolean runProcess(String shellCommand, String processDisplayName) {
         }
     }
 }
+
+@Override
+public boolean equals(Object obj) {
+    // Check if the current object is compared with itself
+    if (this == obj) {
+        return true;
+    }
+
+    // Check if the other object is an instance of the same class
+    if (obj == null || getClass() != obj.getClass()) {
+        return false;
+    }
+
+    // Cast the object to the current class type
+    YourClassName other = (YourClassName) obj;
+
+    // Compare the fields for equality
+    // Assuming 'f' is not null, use its equals method to compare
+    return f.equals(other.f);
+}
+
+// The hashCode method is already provided
+@Override
+public int hashCode() {
+    return f.hashCode();
+}
+
 //
