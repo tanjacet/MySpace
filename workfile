@@ -309,4 +309,22 @@ public int hashCode() {
     return f.hashCode();
 }
 
+
+@Override
+public boolean equals(Object obj) {
+    if (this == obj) {
+        return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+        return false;
+    }
+    YourClassName other = (YourClassName) obj;
+    return f != null ? f.equals(other.f) : other.f == null;
+}
+
+@Override
+public int hashCode() {
+    return f != null ? f.hashCode() : 0;
+}
+
 //
