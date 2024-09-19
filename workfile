@@ -184,5 +184,39 @@ public class ResultsProcessor {
     }
 }
 
+---
 
-*/
+*/public interface ProcessLauncher {
+    void command(String... strs);
+    Process start() throws IOException;
+}
+
+private static final int EXIT_SUCCESS = 0;
+private final Supplier<ProcessLauncher> processLauncherSupplier = this::createProcessLauncher;
+
+public boolean runProcess(String shellCommand, String processDisplayName) {
+    ProcessLauncher processLauncher = processLauncherSupplier.get();
+    processLauncher.command("bash", "-c", shellCommand);
+    Process process = null;
+    try {
+        process = processLauncher.start();
+        int exitVal = process.waitFor(); // This line should throw InterruptedException
+        return EXIT_SUCCESS == exitVal;
+    } catch (InterruptedException e) {
+        // Restore the interrupted status
+        Thread.currentThread().interrupt();
+        log.error("Process was interrupted: " + e.getMessage(), e);
+        return false;
+    } catch (IOException e) {
+        log.error("I/O error occurred while running the process: " + e.getMessage(), e);
+        return false;
+    } finally {
+        if (process != null) {
+            try {
+                process.destroy();
+            } catch (Throwable t) {
+                log.error("Cannot destroy process: " + t.getMessage(), t);
+            }
+        }
+    }
+}
