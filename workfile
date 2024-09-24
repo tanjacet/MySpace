@@ -327,4 +327,10 @@ public int hashCode() {
     return f != null ? f.hashCode() : 0;
 }
 
+Optional<String> result = Optional.ofNullable(objectReference)
+                                   .map(obj -> obj.get());  // Assuming 'get()' is safe to call
+if (result.isPresent()) {
+    // do something
+}
+
 //
