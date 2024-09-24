@@ -333,4 +333,40 @@ if (result.isPresent()) {
     // do something
 }
 
+private void readAndWrite(Function<String, Boolean> processingCondition,
+                          Function<String, Optional<String>> manipulationFunction,
+                          boolean append) throws IOException {
+    // Check if the processingCondition and manipulationFunction are null
+    if (processingCondition == null || manipulationFunction == null) {
+        throw new IllegalArgumentException("processingCondition and manipulationFunction cannot be null");
+    }
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(source));
+         BufferedWriter writer = new BufferedWriter(new FileWriter(target, append))) {
+        
+        int i = 0;
+        String line;
+        
+        while ((line = reader.readLine()) != null) {
+            // Safely apply the processing condition, ensure it's not null
+            Boolean conditionResult = processingCondition.apply(line);
+            if (conditionResult != null && conditionResult) {
+                // Safely apply the manipulation function, ensure it returns a valid Optional
+                Optional<String> result = Optional.ofNullable(manipulationFunction.apply(line))
+                                                  .orElse(Optional.empty());
+                
+                if (result.isPresent()) {
+                    if (i > 0 || append) {
+                        writer.newLine();
+                    }
+                    writer.write(result.get());
+                    if (++i % 100 == 0) {
+                        log.info("Written {} items", i);  // corrected logging syntax
+                    }
+                }
+            }
+        }
+    }
+}
+
 //
