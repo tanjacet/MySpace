@@ -369,4 +369,21 @@ private void readAndWrite(Function<String, Boolean> processingCondition,
     }
 }
 
+To Summarize:
+Optional is designed to represent "a value that might be absent." It is an explicit way to handle situations where you might or might not have a value.
+
+Optional.of() expects a non-null value and will throw an exception if a null is passed to it. It's useful when you're sure the value exists.
+
+Optional.ofNullable() is designed to handle null values gracefully. It ensures that even if the value passed is null, you won’t get a NullPointerException, but instead, you'll get Optional.empty().
+
+Why Optional.ofNullable() is safer: It is crucial when you want to wrap values that might be null, because it converts null into Optional.empty(), ensuring that subsequent operations on the Optional are safe and won’t throw NullPointerException.
+
+Why Use Optional at All?
+Optional helps clarify the intent of your methods: it makes it explicit that a value might be absent, which encourages callers to handle the case of missing values properly.
+It avoids null checks and makes code more readable by using Optional methods like isPresent(), ifPresent(), and orElse(), instead of manual null-checking.
+Conclusion:
+Optional is useful to represent a value that might be missing (absent).
+Optional.ofNullable() is necessary to handle cases where a value could be null. It turns null into Optional.empty(), preventing NullPointerException.
+Using Optional doesn’t automatically wrap a null value—you need to ensure that you’re using Optional.ofNullable() or other null-safe mechanisms when dealing with potentially null values.
+
 //
