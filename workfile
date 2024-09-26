@@ -386,4 +386,11 @@ Optional is useful to represent a value that might be missing (absent).
 Optional.ofNullable() is necessary to handle cases where a value could be null. It turns null into Optional.empty(), preventing NullPointerException.
 Using Optional doesn’t automatically wrap a null value—you need to ensure that you’re using Optional.ofNullable() or other null-safe mechanisms when dealing with potentially null values.
 
+@Bean
+public Map<String, Object> params() {
+    Map<String, Object> params = new HashMap<>();
+    params.put("locale", Arrays.asList(Locale.getISOCountries()));
+    return params;
+}
+
 //
