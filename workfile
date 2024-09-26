@@ -396,8 +396,6 @@ public Map<String, Object> params() {
 Step 1: Define a Map Bean
 You can extract the params map into its own bean to be reused.
 
-java
-Code kopieren
 @Bean
 public Map<String, Object> params() {
     Map<String, Object> params = new HashMap<>();
@@ -407,8 +405,6 @@ public Map<String, Object> params() {
 Step 2: Define your first DataClass Bean using the Map Bean
 You can now inject this Map into the first DataClass bean.
 
-java
-Code kopieren
 @Bean
 public DataClass dataOne(@Qualifier("someQualifier") String query, Map<String, Object> params) {
     return new DataClass("address", query, params);
@@ -416,8 +412,6 @@ public DataClass dataOne(@Qualifier("someQualifier") String query, Map<String, O
 Step 3: Define another DataClass Bean
 Now, if you need to create a second DataClass bean, you can reuse the same params object from the params() bean.
 
-java
-Code kopieren
 @Bean
 public DataClass dataTwo(@Qualifier("anotherQualifier") String query, Map<String, Object> params) {
     return new DataClass("otherAddress", query, params);
