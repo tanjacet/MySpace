@@ -1,0 +1,16 @@
+WITH cl AS (
+    SELECT bo.rel_id, bo.cl_id, cp.cl_id AS cl_id_cp
+    FROM table1 bo
+    JOIN table1 cp
+        ON bo.rel_id = cp.rel_id
+        AND cp.rel_role = :relRole
+        AND cp.TEN = :ten
+    WHERE bo.rel_role IN (:roles)
+        AND bo.cl_id = :clientId
+        AND bo.TEN = :ten
+)
+SELECT DISTINCT ber.client_id, ber.level_cc, ber.CONFIRMED_DATE, ber.START_DATE, cl.cl_id_cp
+FROM table3 ber
+JOIN cl
+    ON ber.cl_id = cl.cl_id_cp
+ORDER BY ber.level_cc DESC;
