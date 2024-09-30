@@ -1,5 +1,5 @@
 WITH cl AS (
-    SELECT bo.rel_id, bo.cl_id, cp.cl_id AS cl_id_cp
+    SELECT bo.rel_id, bo.cl_id, bo.rel_role, cp.cl_id AS cl_id_cp
     FROM table1 bo
     JOIN table1 cp
         ON bo.rel_id = cp.rel_id
@@ -14,6 +14,8 @@ FROM table3 ber
 JOIN cl
     ON ber.cl_id = cl.cl_id_cp
 ORDER BY ber.level_cc DESC;
+
+
 Key Changes:
 CTE Optimization: Removed redundant columns (bo.rel_role and cp.rel_role) that are not used in the final query. This reduces the amount of data processed and transferred between the CTE and the main query.
 
