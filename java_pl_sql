@@ -46,3 +46,17 @@ FROM table3 ber
 JOIN cl
     ON ber.cl_id = cl.cl_id_cp
 ORDER BY ber.level_cc DESC;
+
+Key Insight:
+Columns used in WHERE or JOIN clauses (like bo.rel_role, bo.cl_id, and bo.rel_id) must be available in the query for those operations but do not need to be selected in the final SELECT list if they are not part of the output.
+
+The only columns you need in the CTE's SELECT list are those that you either:
+
+Need in the final query (e.g., cl.cl_id_cp).
+Need for a subsequent JOIN or WHERE condition outside the CTE.
+Key Takeaway:
+You only need to include columns in the SELECT list if:
+
+They are required in the final result set or the main query after the CTE.
+They are necessary for subsequent JOIN conditions outside the CTE.
+Columns used for filtering (WHERE) or joining (JOIN) within the CTE itself don’t need to appear in the SELECT list unless they are needed later.
