@@ -14,3 +14,16 @@ FROM table3 ber
 JOIN cl
     ON ber.cl_id = cl.cl_id_cp
 ORDER BY ber.level_cc DESC;
+Key Changes:
+CTE Optimization: Removed redundant columns (bo.rel_role and cp.rel_role) that are not used in the final query. This reduces the amount of data processed and transferred between the CTE and the main query.
+
+Removed ORDER BY in CTE: There is no need to sort the data in the CTE cl, as the final result set is sorted in the outer query by ber.level_cc DESC. Sorting inside a CTE adds unnecessary computation.
+
+Indexing Recommendations:
+
+Ensure that table1 has indexes on rel_id, rel_role, cl_id, and TEN.
+Ensure that table3 has indexes on cl_id, client_id, and level_cc to optimize JOIN and ORDER BY performance.
+Index Suggestions:
+table1 (rel_id, rel_role, TEN)
+table3 (cl_id, client_id, level_cc)
+These changes should improve the overall query performance by reducing unnecessary sorting, minimizing data in the CTE, and leveraging indexes where appropriate.
