@@ -60,3 +60,8 @@ You only need to include columns in the SELECT list if:
 They are required in the final result set or the main query after the CTE.
 They are necessary for subsequent JOIN conditions outside the CTE.
 Columns used for filtering (WHERE) or joining (JOIN) within the CTE itself don’t need to appear in the SELECT list unless they are needed later.
+
+
+The HTTP request body itself is just a data payload, not a dynamic programming environment. 
+To exclude elements from an array, you must manually adjust the array before constructing the HTTP request body 
+or handle it in a pre-processing step in whatever system you're using to make the request.
