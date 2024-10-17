@@ -368,3 +368,6 @@ def fetch_data():
 # Run the function to fetch data
 fetch_data()
 
+#The HTTP request body itself is just a data payload, not a dynamic programming environment. 
+To exclude elements from an array, you must manually adjust the array before constructing the HTTP request body 
+or handle it in a pre-processing step in whatever system you're using to make the request.
