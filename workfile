@@ -440,3 +440,40 @@ String something = String.join(";",
           .filter(Objects::nonNull)
           .toArray(String[]::new)
 );//
+
+//
+1. Treat empty strings as null (or exclude them)
+If getOtherInfo() returns an empty string, you can treat it as null and exclude it:
+
+java
+Code kopieren
+String something = String.join(";", 
+    Stream.of(getName(), getCity(), getAddress(), getOtherInfo())
+          .filter(info -> info != null && !info.isEmpty())  // Filter out null and empty strings
+          .toArray(String[]::new)
+);
+2. Replace empty strings with a placeholder (e.g., a single space " " or "-")
+Alternatively, if you want to retain the position of the getOtherInfo() but replace empty strings with some placeholder (like a space or dash), you can do this:
+
+java
+Code kopieren
+String something = String.join(";", 
+    getName(), 
+    getCity(), 
+    getAddress(), 
+    getOtherInfo() != null && !getOtherInfo().isEmpty() ? getOtherInfo() : " "  // Replace empty with a space
+);
+This way, if getOtherInfo() is an empty string, it will be replaced by a space " " or any other placeholder you choose, which Excel can handle more gracefully.
+
+3. Remove only empty strings, but keep null (if you want nulls to be present):
+java
+Code kopieren
+String something = String.join(";", 
+    Stream.of(getName(), getCity(), getAddress(), getOtherInfo())
+          .map(info -> info != null && info.isEmpty() ? " " : info)  // Replace empty with space, keep null as null
+          .toArray(String[]::new)
+);
+Which Approach to Use:
+If Excel needs some non-empty content, replace empty strings with something meaningful, like " " or "-".
+If you don't mind excluding empty fields, filter them out.
+This should solve the issue with empty strings causing problems when writing to Excel.//
