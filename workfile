@@ -421,3 +421,22 @@ Reusability: The params map is defined as a separate bean, and both DataClass be
 Clear Dependency Management: Each DataClass is initialized independently, but the shared params bean ensures that both instances get the same map.
 Avoids Name Collision: You can have multiple beans (dataOne and dataTwo) that use the same shared params bean without naming conflicts.
 //
+//
+String something = String.join(";", 
+    getName(), 
+    getCity(), 
+    getAddress(), 
+    getOtherInfo() != null ? getOtherInfo() : ""
+);
+In this code, if getOtherInfo() returns null, it will be replaced by an empty string "", and the rest of the values will be concatenated with a semicolon ; separator.
+
+2. Exclude the null value
+If you want to completely exclude null values (so the getOtherInfo() part won't contribute to the resulting string), you can filter out null values like this:
+
+java
+Code kopieren
+String something = String.join(";", 
+    Stream.of(getName(), getCity(), getAddress(), getOtherInfo())
+          .filter(Objects::nonNull)
+          .toArray(String[]::new)
+);//
