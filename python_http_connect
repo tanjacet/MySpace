@@ -394,3 +394,39 @@ newest_datetime = datetime.fromtimestamp(newest_timestamp / 1000)
 # Print in the desired format yyyymmdd
 print(newest_datetime.strftime('%Y%m%d'))
 ####
+from datetime import datetime, timedelta
+
+# Define 'yesterday' as 2024-10-27 00:00:00
+yesterday = datetime(2024, 10, 27, 0, 0, 0)
+yesterday_ms = int(yesterday.timestamp() * 1000)
+
+# Define 'today' as 2024-10-28 00:00:00
+today = datetime(2024, 10, 28, 0, 0, 0)
+today_ms = int(today.timestamp() * 1000)
+
+# Print the millisecond values
+print("Yesterday (in ms):", yesterday_ms)
+print("Today (in ms):", today_ms)
+
+
+payload = {
+    "timeFilter": {
+        "gt": yesterday_ms,
+        "lt": today_ms
+    }
+}
+
+
+from datetime import datetime, timedelta
+
+# Get today's date at 00:00:00
+today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+today_ms = int(today.timestamp() * 1000)
+
+# Calculate yesterday's date at 00:00:00
+yesterday = today - timedelta(days=1)
+yesterday_ms = int(yesterday.timestamp() * 1000)
+
+# Print the millisecond values
+print("Yesterday (in ms):", yesterday_ms)
+print("Today (in ms):", today_ms)
