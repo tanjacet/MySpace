@@ -373,3 +373,24 @@ fetch_data()
 #The HTTP request body itself is just a data payload, not a dynamic programming environment. 
 To exclude elements from an array, you must manually adjust the array before constructing the HTTP request body 
 or handle it in a pre-processing step in whatever system you're using to make the request.
+
+####
+
+import pandas as pd
+from datetime import datetime
+
+# Load the CSV file
+data = pd.read_csv('your_file.csv')
+
+# Ensure 'lastUpdated' is treated as a numeric type
+data['lastUpdated'] = pd.to_numeric(data['lastUpdated'], errors='coerce')
+
+# Find the newest timestamp in milliseconds
+newest_timestamp = data['lastUpdated'].max()
+
+# Convert the timestamp to a datetime object
+newest_datetime = datetime.fromtimestamp(newest_timestamp / 1000)
+
+# Print in the desired format yyyymmdd
+print(newest_datetime.strftime('%Y%m%d'))
+####
