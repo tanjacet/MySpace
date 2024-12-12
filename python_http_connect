@@ -437,3 +437,9 @@ print(today)  # Output example: "2024-12-12"
 # Print the millisecond values
 print("Yesterday (in ms):", yesterday_ms)
 print("Today (in ms):", today_ms)
+
+
+i = 0
+while True:
+    if test:
+        return False if i == 2 else i + 1
