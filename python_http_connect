@@ -427,6 +427,13 @@ today_ms = int(today.timestamp() * 1000)
 yesterday = today - timedelta(days=1)
 yesterday_ms = int(yesterday.timestamp() * 1000)
 
+
+from datetime import datetime
+
+# Get today's date and format it as yyyy-mm-dd
+today = datetime.now().strftime('%Y-%m-%d')
+
+print(today)  # Output example: "2024-12-12"
 # Print the millisecond values
 print("Yesterday (in ms):", yesterday_ms)
 print("Today (in ms):", today_ms)
