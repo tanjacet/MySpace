@@ -483,3 +483,44 @@ yesterday_ms, today_ms = get_timestamps(directory_path)
 print("Yesterday's timestamp (ms):", yesterday_ms)
 print("Today's timestamp (ms):", today_ms)
 
+####
+import os
+import glob
+from datetime import datetime
+import re
+
+def get_timestamps(directory):
+    # Default values
+    yesterday_ms = "0000000000000"
+    today_ms = int(datetime.now().timestamp() * 1000)
+
+    # Find all files in the directory
+    files = glob.glob(os.path.join(directory, "*"))
+
+    if files:
+        # Find the newest file by modification time
+        newest_file = max(files, key=os.path.getmtime)
+
+        # Extract the date from the filename (e.g., report-test-2024-12-12.json or report-some-test-2024.12.12.json)
+        try:
+            basename = os.path.basename(newest_file)
+            # Regex to match date formats like YYYY-MM-DD or YYYY.MM.DD
+            match = re.search(r"\d{4}[-.]\d{2}[-.]\d{2}", basename)
+            if match:
+                date_part = match.group(0).replace(".", "-")  # Normalize to YYYY-MM-DD
+                file_date = datetime.strptime(date_part, "%Y-%m-%d")
+
+                # Convert to milliseconds
+                yesterday_ms = int(file_date.timestamp() * 1000)
+            else:
+                print(f"No valid date found in filename: {newest_file}")
+        except ValueError:
+            print(f"Failed to parse date from filename: {newest_file}")
+
+    return yesterday_ms, today_ms
+
+# Example usage
+directory_path = "/path/to/directory"  # Replace with your directory
+yesterday_ms, today_ms = get_timestamps(directory_path)
+print("Yesterday's timestamp (ms):", yesterday_ms)
+print("Today's timestamp (ms):", today_ms)
