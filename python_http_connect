@@ -443,3 +443,43 @@ i = 0
 while True:
     if test:
         return False if i == 2 else i + 1
+
+
+
+####
+import os
+import glob
+from datetime import datetime
+
+def get_timestamps(directory):
+    # Default values
+    yesterday_ms = "0000000000000"
+    today_ms = int(datetime.now().timestamp() * 1000)
+
+    # Find all files in the directory
+    files = glob.glob(os.path.join(directory, "*"))
+
+    if files:
+        # Find the newest file by modification time
+        newest_file = max(files, key=os.path.getmtime)
+
+        # Extract the date from the filename (e.g., report-2024-12-12.json)
+        try:
+            basename = os.path.basename(newest_file)
+            # Assuming date format is YYYY-MM-DD in the filename
+            date_part = basename.split("-")[1] + "-" + basename.split("-")[2] + "-" + basename.split("-")[3].split(".")[0]
+            file_date = datetime.strptime(date_part, "%Y-%m-%d")
+
+            # Convert to milliseconds
+            yesterday_ms = int(file_date.timestamp() * 1000)
+        except (IndexError, ValueError):
+            print(f"Failed to parse date from filename: {newest_file}")
+
+    return yesterday_ms, today_ms
+
+# Example usage
+directory_path = "/path/to/directory"  # Replace with your directory
+yesterday_ms, today_ms = get_timestamps(directory_path)
+print("Yesterday's timestamp (ms):", yesterday_ms)
+print("Today's timestamp (ms):", today_ms)
+
