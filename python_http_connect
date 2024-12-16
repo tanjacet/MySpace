@@ -524,3 +524,16 @@ directory_path = "/path/to/directory"  # Replace with your directory
 yesterday_ms, today_ms = get_timestamps(directory_path)
 print("Yesterday's timestamp (ms):", yesterday_ms)
 print("Today's timestamp (ms):", today_ms)
+
+import datetime as dt
+import pandas as pd
+import numpy as np
+
+# Ensure that 'created' is parsed as datetime
+orders['created'] = pd.to_datetime(orders['created'])
+
+# Calculate the difference in hours
+orders['order_sla_hours'] = np.where(
+    orders['aging_sla_hours'] < 0,
+    (dt.datetime.now() - orders['created']).dt.total_seconds() / 3600,  # Convert seconds to hours
+    orders['aging_sla_hours']
