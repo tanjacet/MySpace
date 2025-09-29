@@ -1,0 +1,93 @@
+1. Background Service (used only by update)
+public interface BackgroundService {
+    void runTask(String payload);
+}
+
+@Service
+@ConditionalOnProperty(
+    value = "app.background-service-enabled",
+    havingValue = "true",
+    matchIfMissing = false
+)
+public class BackgroundServiceImpl implements BackgroundService {
+
+    @Async
+    @Override
+    public void runTask(String payload) {
+        System.out.println("Background processing update: " + payload);
+        try {
+            Thread.sleep(3000); // simulate heavy work
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+2. CreateHandler (sends email)
+@Component
+public class CreateHandler {
+    public void handle(String payload) {
+        // pretend this sends an email
+        System.out.println("Sending email for new create: " + payload);
+    }
+}
+
+3. UpdateHandler (depends on BackgroundService)
+@Component
+public class UpdateHandler {
+    private final Optional<BackgroundService> backgroundService;
+
+    public UpdateHandler(Optional<BackgroundService> backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    public void handle(String payload) {
+        backgroundService.ifPresent(service -> service.runTask(payload));
+    }
+}
+
+4. Orchestrator / Facade
+@Service
+public class BackgroundServiceFacade {
+    private final CreateHandler createHandler;
+    private final UpdateHandler updateHandler;
+
+    public BackgroundServiceFacade(CreateHandler createHandler, UpdateHandler updateHandler) {
+        this.createHandler = createHandler;
+        this.updateHandler = updateHandler;
+    }
+
+    public void process(String id, String payload) {
+        if (id == null || id.isBlank()) {
+            createHandler.handle(payload);
+        } else {
+            updateHandler.handle(payload);
+        }
+    }
+}
+
+5. Controllers
+
+No change — they only talk to the facade:
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    private final BackgroundServiceFacade backgroundServiceFacade;
+
+    public UserController(BackgroundServiceFacade backgroundServiceFacade) {
+        this.backgroundServiceFacade = backgroundServiceFacade;
+    }
+
+    @PostMapping
+    public String createUser(@RequestBody String userPayload) {
+        backgroundServiceFacade.process(null, userPayload);
+        return "User create requested (email will be sent)";
+    }
+
+    @PutMapping("/{id}")
+    public String updateUser(@PathVariable String id, @RequestBody String userPayload) {
+        backgroundServiceFacade.process(id, userPayload);
+        return "User update requested (background job if enabled)";
+    }
+}
