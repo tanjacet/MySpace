@@ -1,0 +1,131 @@
+erfect direction 👍 — let’s introduce an ObjectChange DTO that wraps the payload and includes an enum (ChangeType.CREATE / ChangeType.UPDATE).
+
+That way:
+
+Handlers no longer depend on string IDs.
+
+The decision (create vs update) is expressed in the object, not inferred in the facade.
+
+You can extend the enum later (e.g. DELETE, ARCHIVE, etc.).
+
+✅ Implementation
+1. Enum + DTO
+public enum ChangeType {
+    CREATE,
+    UPDATE
+}
+
+public class ObjectChange {
+    private final ChangeType type;
+    private final String payload;
+
+    public ObjectChange(ChangeType type, String payload) {
+        this.type = type;
+        this.payload = payload;
+    }
+
+    public ChangeType getType() {
+        return type;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+}
+
+2. Handlers
+
+Each handler only accepts ObjectChange.
+
+@Component
+public class CreateHandler {
+    public void handle(ObjectChange change) {
+        if (change.getType() != ChangeType.CREATE) {
+            throw new IllegalArgumentException("CreateHandler can only handle CREATE changes");
+        }
+        System.out.println("Sending email for new create: " + change.getPayload());
+    }
+}
+
+@Component
+public class UpdateHandler {
+    private final Optional<BackgroundService> backgroundService;
+
+    public UpdateHandler(Optional<BackgroundService> backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    public void handle(ObjectChange change) {
+        if (change.getType() != ChangeType.UPDATE) {
+            throw new IllegalArgumentException("UpdateHandler can only handle UPDATE changes");
+        }
+        backgroundService.ifPresent(service -> service.runTask(change.getPayload()));
+    }
+}
+
+3. Facade (uses the enum)
+@Service
+public class BackgroundServiceFacade {
+    private final CreateHandler createHandler;
+    private final UpdateHandler updateHandler;
+
+    public BackgroundServiceFacade(CreateHandler createHandler, UpdateHandler updateHandler) {
+        this.createHandler = createHandler;
+        this.updateHandler = updateHandler;
+    }
+
+    public void process(ObjectChange change) {
+        switch (change.getType()) {
+            case CREATE:
+                createHandler.handle(change);
+                break;
+            case UPDATE:
+                updateHandler.handle(change);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported change type: " + change.getType());
+        }
+    }
+}
+
+4. Controllers
+
+Now they construct an ObjectChange before passing to the facade:
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    private final BackgroundServiceFacade backgroundServiceFacade;
+
+    public UserController(BackgroundServiceFacade backgroundServiceFacade) {
+        this.backgroundServiceFacade = backgroundServiceFacade;
+    }
+
+    @PostMapping
+    public String createUser(@RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User create requested (email will be sent)";
+    }
+
+    @PutMapping("/{id}")
+    public String updateUser(@PathVariable String id, @RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User update requested (background job if enabled)";
+    }
+}
+
+✅ Benefits of This Refactor
+
+Explicit intent → request type is carried in the object, not guessed from null/ID.
+
+Cleaner facade → just dispatches based on enum.
+
+Extensible → add DELETE, ARCHIVE, etc. without breaking existing code.
+
+Test-friendly → you can write unit tests for each handler with different ObjectChange values.
+
+👉 Would you like me to also add a common ChangeHandler interface (with a supports(ChangeType) method), so you can register multiple handlers and the facade just picks the right one dynamically — instead of hardcoding switch?
+
+ChatGPT kann Fehler machen. Überprüfe wichtige Informationen.
