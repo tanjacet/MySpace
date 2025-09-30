@@ -1,0 +1,125 @@
+1. Enum + DTO (same as before)
+public enum ChangeType {
+    CREATE,
+    UPDATE
+}
+
+public class ObjectChange {
+    private final ChangeType type;
+    private final String payload;
+
+    public ObjectChange(ChangeType type, String payload) {
+        this.type = type;
+        this.payload = payload;
+    }
+
+    public ChangeType getType() {
+        return type;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+}
+
+2. Common Handler Interface
+public interface ChangeHandler {
+    boolean supports(ChangeType type);
+    void handle(ObjectChange change);
+}
+
+3. CreateHandler
+@Component
+public class CreateHandler implements ChangeHandler {
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.CREATE;
+    }
+
+    @Override
+    public void handle(ObjectChange change) {
+        System.out.println("Sending email for new create: " + change.getPayload());
+    }
+}
+
+4. UpdateHandler
+@Component
+public class UpdateHandler implements ChangeHandler {
+
+    private final Optional<BackgroundService> backgroundService;
+
+    public UpdateHandler(Optional<BackgroundService> backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.UPDATE;
+    }
+
+    @Override
+    public void handle(ObjectChange change) {
+        backgroundService.ifPresent(service -> service.runTask(change.getPayload()));
+    }
+}
+
+5. Facade (Dynamic Selection)
+@Service
+public class BackgroundServiceFacade {
+    private final List<ChangeHandler> handlers;
+
+    public BackgroundServiceFacade(List<ChangeHandler> handlers) {
+        this.handlers = handlers;
+    }
+
+    public void process(ObjectChange change) {
+        handlers.stream()
+                .filter(handler -> handler.supports(change.getType()))
+                .findFirst()
+                .orElseThrow(() -> new UnsupportedOperationException(
+                        "No handler found for type: " + change.getType()
+                ))
+                .handle(change);
+    }
+}
+
+6. Controllers
+
+Stay clean, just wrap payloads:
+
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    private final BackgroundServiceFacade backgroundServiceFacade;
+
+    public UserController(BackgroundServiceFacade backgroundServiceFacade) {
+        this.backgroundServiceFacade = backgroundServiceFacade;
+    }
+
+    @PostMapping
+    public String createUser(@RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User create requested";
+    }
+
+    @PutMapping("/{id}")
+    public String updateUser(@PathVariable String id, @RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User update requested for " + id;
+    }
+}
+
+✅ Benefits
+
+Extensible → Adding a new handler = just implement ChangeHandler.
+
+No switch-case → The facade doesn’t need to know about each handler.
+
+Open/Closed principle → New behavior without modifying existing code.
+
+Testable → Each handler can be tested independently.
+
+👉 Would you like me to also add an integration test that spins up Spring Boot, injects both handlers automatically, and verifies that the correct handler is chosen at runtime based on ChangeType?
