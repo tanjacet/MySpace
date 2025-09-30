@@ -123,3 +123,294 @@ Open/Closed principle → New behavior without modifying existing code.
 Testable → Each handler can be tested independently.
 
 👉 Would you like me to also add an integration test that spins up Spring Boot, injects both handlers automatically, and verifies that the correct handler is chosen at runtime based on ChangeType?
+
+wesome 😃 Let’s build a Spring Boot integration test that verifies:
+
+Spring injects both CreateHandler and UpdateHandler.
+
+The BackgroundServiceFacade correctly picks the right handler based on ChangeType.
+
+The UpdateHandler calls the BackgroundService only if it’s enabled.
+
+✅ Example Integration Test
+@SpringBootTest(
+    properties = "app.background-service-enabled=true"
+)
+class BackgroundServiceFacadeIntegrationTest {
+
+    @Autowired
+    private BackgroundServiceFacade facade;
+
+    @Autowired
+    private ApplicationContext context;
+
+    @Test
+    void shouldUseCreateHandlerForCreateChange() {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, "user-payload");
+
+        // just verifying no exception and correct handler runs
+        assertThatCode(() -> facade.process(change)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldUseUpdateHandlerForUpdateChange() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "user-payload");
+
+        // BackgroundService is enabled in this test
+        assertThatCode(() -> facade.process(change)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldHaveBothHandlersInContext() {
+        Map<String, ChangeHandler> beans = context.getBeansOfType(ChangeHandler.class);
+        assertThat(beans).hasSize(2);
+        assertThat(beans.values())
+                .extracting("class")
+                .anySatisfy(c -> assertThat(c.getSimpleName()).isEqualTo("CreateHandler"))
+                .anySatisfy(c -> assertThat(c.getSimpleName()).isEqualTo("UpdateHandler"));
+    }
+}
+
+✅ Test When Background Service Is Disabled
+@SpringBootTest(
+    properties = "app.background-service-enabled=false"
+)
+class BackgroundServiceFacadeWhenDisabledTest {
+
+    @Autowired
+    private BackgroundServiceFacade facade;
+
+    @Test
+    void updateShouldNotFailWhenBackgroundServiceDisabled() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "user-payload");
+
+        // UpdateHandler will run, but BackgroundService is not present
+        assertThatCode(() -> facade.process(change)).doesNotThrowAnyException();
+    }
+}
+
+✅ What These Tests Prove
+
+CreateHandler runs when ChangeType.CREATE.
+
+UpdateHandler runs when ChangeType.UPDATE.
+
+Both handlers are properly registered as beans in the Spring context.
+
+UpdateHandler gracefully handles the case when BackgroundService is disabled.
+
+👉 Do you want me to also show you REST controller integration tests (using @SpringBootTest + TestRestTemplate or MockMvc) that call the actual endpoints (POST /api/users, PUT /api/users/{id}) and verify they trigger the right handlers?
+
+Du:
+I would rather test it with unit tests with mock beans
+ChatGPT:
+
+Perfect 👍 — unit tests with mock beans are faster, more isolated, and easier to maintain than full-blown integration tests.
+We’ll use Spring Boot’s @SpringBootTest + @MockBean (or plain Mockito with @ExtendWith(MockitoExtension.class)) to replace real beans with mocks.
+
+✅ 1. Facade Unit Tests with Mock Handlers
+
+Here we mock the ChangeHandlers and verify that BackgroundServiceFacade delegates correctly:
+
+@ExtendWith(MockitoExtension.class)
+class BackgroundServiceFacadeUnitTest {
+
+    @Mock
+    private CreateHandler createHandler;
+
+    @Mock
+    private UpdateHandler updateHandler;
+
+    @InjectMocks
+    private BackgroundServiceFacade facade;
+
+    @Test
+    void shouldCallCreateHandlerWhenTypeIsCreate() {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, "user-payload");
+
+        when(createHandler.supports(ChangeType.CREATE)).thenReturn(true);
+
+        facade.process(change);
+
+        verify(createHandler).handle(change);
+        verify(updateHandler, never()).handle(any());
+    }
+
+    @Test
+    void shouldCallUpdateHandlerWhenTypeIsUpdate() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "user-payload");
+
+        when(updateHandler.supports(ChangeType.UPDATE)).thenReturn(true);
+
+        facade.process(change);
+
+        verify(updateHandler).handle(change);
+        verify(createHandler, never()).handle(any());
+    }
+
+    @Test
+    void shouldThrowWhenNoHandlerSupportsType() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "user-payload");
+
+        when(updateHandler.supports(any())).thenReturn(false);
+        when(createHandler.supports(any())).thenReturn(false);
+
+        assertThatThrownBy(() -> facade.process(change))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("No handler found");
+    }
+}
+
+✅ 2. UpdateHandler Unit Test with Mock BackgroundService
+
+Here we verify that UpdateHandler calls BackgroundService when present.
+
+@ExtendWith(MockitoExtension.class)
+class UpdateHandlerUnitTest {
+
+    @Mock
+    private BackgroundService backgroundService;
+
+    private UpdateHandler updateHandler;
+
+    @BeforeEach
+    void setup() {
+        updateHandler = new UpdateHandler(Optional.of(backgroundService));
+    }
+
+    @Test
+    void shouldCallBackgroundServiceWhenTypeIsUpdate() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "payload");
+
+        updateHandler.handle(change);
+
+        verify(backgroundService).runTask("payload");
+    }
+
+    @Test
+    void shouldThrowWhenTypeIsNotUpdate() {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, "payload");
+
+        assertThatThrownBy(() -> updateHandler.handle(change))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UpdateHandler can only handle UPDATE");
+    }
+}
+
+✅ 3. CreateHandler Unit Test
+class CreateHandlerUnitTest {
+
+    private final CreateHandler createHandler = new CreateHandler();
+
+    @Test
+    void shouldHandleCreate() {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, "payload");
+
+        assertThatCode(() -> createHandler.handle(change)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void shouldThrowWhenTypeIsNotCreate() {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, "payload");
+
+        assertThatThrownBy(() -> createHandler.handle(change))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("CreateHandler can only handle CREATE");
+    }
+}
+
+✅ Summary
+
+Facade tests → verify delegation logic (mock handlers).
+
+UpdateHandler tests → verify it calls BackgroundService only on UPDATE.
+
+CreateHandler tests → verify it only handles CREATE.
+
+This way you test the whole design without spinning up Spring Boot 🚀.
+
+👉 Do you want me to also show how to unit test the REST controllers with @WebMvcTest and mock the BackgroundServiceFacade? That way you ensure the web layer is cleanly decoupled.
+
+Du:
+oh yes
+ChatGPT:
+
+Great choice 😃 — testing controllers with @WebMvcTest is the lightweight way to check the web layer.
+It loads only the controller(s) and mocks out the rest of the beans (like your BackgroundServiceFacade).
+
+✅ Example: UserController Unit Test with Mocked Facade
+1. Controller (for reference)
+@RestController
+@RequestMapping("/api/users")
+public class UserController {
+    private final BackgroundServiceFacade backgroundServiceFacade;
+
+    public UserController(BackgroundServiceFacade backgroundServiceFacade) {
+        this.backgroundServiceFacade = backgroundServiceFacade;
+    }
+
+    @PostMapping
+    public String createUser(@RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.CREATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User create requested";
+    }
+
+    @PutMapping("/{id}")
+    public String updateUser(@PathVariable String id, @RequestBody String userPayload) {
+        ObjectChange change = new ObjectChange(ChangeType.UPDATE, userPayload);
+        backgroundServiceFacade.process(change);
+        return "User update requested for " + id;
+    }
+}
+
+2. Test with @WebMvcTest
+@WebMvcTest(UserController.class)
+class UserControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private BackgroundServiceFacade facade;
+
+    @Test
+    void shouldCallFacadeOnCreate() throws Exception {
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("new-user"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User create requested"));
+
+        ArgumentCaptor<ObjectChange> captor = ArgumentCaptor.forClass(ObjectChange.class);
+        verify(facade).process(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(ChangeType.CREATE);
+        assertThat(captor.getValue().getPayload()).isEqualTo("new-user");
+    }
+
+    @Test
+    void shouldCallFacadeOnUpdate() throws Exception {
+        mockMvc.perform(put("/api/users/123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("updated-user"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User update requested for 123"));
+
+        ArgumentCaptor<ObjectChange> captor = ArgumentCaptor.forClass(ObjectChange.class);
+        verify(facade).process(captor.capture());
+        assertThat(captor.getValue().getType()).isEqualTo(ChangeType.UPDATE);
+        assertThat(captor.getValue().getPayload()).isEqualTo("updated-user");
+    }
+}
+
+✅ Why This Rocks
+
+Fast → doesn’t load the full Spring Boot app, only MVC slice.
+
+Decoupled → tests only the controller’s behavior and request mapping.
+
+Verifies delegation → ensures controller forwards the right ObjectChange to the facade.
+
+Readable → you can check HTTP request → expected HTTP response clearly.
+
+👉 Do you also want me to add a negative test (e.g., invalid JSON or missing body) to ensure your controller returns 400 Bad Request gracefully?
