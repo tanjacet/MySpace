@@ -1,0 +1,294 @@
+REST API with @RestController
+
+A ChangeHandler system with per-type handlers (CREATE, UPDATE)
+
+Conditional backend beans (only loaded when service.backend=true)
+
+All beans defined in a single BeansConfiguration class
+
+Fully compatible with Spring Boot 2.7.x and Java 8
+
+✅ Full Implementation
+1️⃣ Enum & Model
+package com.example.demo.model;
+
+public enum ChangeType {
+    CREATE,
+    UPDATE,
+    DELETE
+}
+
+package com.example.demo.model;
+
+public class ChangeObject {
+    private ChangeType type;
+    private String payload;
+    private boolean needsBackendCall;
+
+    public ChangeObject() {}
+
+    public ChangeObject(ChangeType type, String payload, boolean needsBackendCall) {
+        this.type = type;
+        this.payload = payload;
+        this.needsBackendCall = needsBackendCall;
+    }
+
+    public ChangeType getType() {
+        return type;
+    }
+
+    public void setType(ChangeType type) {
+        this.type = type;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public void setPayload(String payload) {
+        this.payload = payload;
+    }
+
+    public boolean isNeedsBackendCall() {
+        return needsBackendCall;
+    }
+
+    public void setNeedsBackendCall(boolean needsBackendCall) {
+        this.needsBackendCall = needsBackendCall;
+    }
+}
+
+2️⃣ Backend Services
+package com.example.demo.service;
+
+public interface BackgroundService {
+    void sendToBackend(String data);
+}
+
+package com.example.demo.service;
+
+public class BackgroundServiceImpl implements BackgroundService {
+
+    @Override
+    public void sendToBackend(String data) {
+        System.out.println("Sending to backend: " + data);
+    }
+}
+
+package com.example.demo.service;
+
+import com.example.demo.model.ChangeObject;
+
+public interface PendingItemService {
+    void processChange(ChangeObject change);
+}
+
+package com.example.demo.service;
+
+import com.example.demo.model.ChangeObject;
+
+public class PendingItemServiceImpl implements PendingItemService {
+
+    private final BackgroundService backgroundService;
+
+    public PendingItemServiceImpl(BackgroundService backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    @Override
+    public void processChange(ChangeObject change) {
+        backgroundService.sendToBackend(change.getPayload());
+    }
+}
+
+3️⃣ Handler System
+Common Interface
+package com.example.demo.handler;
+
+import com.example.demo.model.ChangeObject;
+import com.example.demo.model.ChangeType;
+
+public interface ObjectChangeHandler {
+    boolean supports(ChangeType type);
+    String handle(ChangeObject change);
+}
+
+Create Handler
+package com.example.demo.handler;
+
+import com.example.demo.model.ChangeObject;
+import com.example.demo.model.ChangeType;
+
+public class CreateObjectChangeHandler implements ObjectChangeHandler {
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.CREATE;
+    }
+
+    @Override
+    public String handle(ChangeObject change) {
+        return "Handled CREATE change locally: " + change.getPayload();
+    }
+}
+
+Update Handler
+package com.example.demo.handler;
+
+import com.example.demo.model.ChangeObject;
+import com.example.demo.model.ChangeType;
+import com.example.demo.service.PendingItemService;
+import org.springframework.context.ApplicationContext;
+
+public class UpdateObjectChangeHandler implements ObjectChangeHandler {
+
+    private final ApplicationContext context;
+
+    public UpdateObjectChangeHandler(ApplicationContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.UPDATE;
+    }
+
+    @Override
+    public String handle(ChangeObject change) {
+        if (change.isNeedsBackendCall() && context.containsBean("pendingItemService")) {
+            PendingItemService service = context.getBean(PendingItemService.class);
+            service.processChange(change);
+            return "Handled UPDATE with backend.";
+        }
+        return "Handled UPDATE locally.";
+    }
+}
+
+4️⃣ ChangeHandler Orchestrator
+package com.example.demo.handler;
+
+import com.example.demo.model.ChangeObject;
+import java.util.List;
+
+public class ChangeHandler {
+
+    private final List<ObjectChangeHandler> handlers;
+
+    public ChangeHandler(List<ObjectChangeHandler> handlers) {
+        this.handlers = handlers;
+    }
+
+    public String process(ChangeObject change) {
+        return handlers.stream()
+                .filter(handler -> handler.supports(change.getType()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new UnsupportedOperationException("Unsupported change type: " + change.getType()))
+                .handle(change);
+    }
+}
+
+5️⃣ Configuration Class
+package com.example.demo.config;
+
+import com.example.demo.handler.*;
+import com.example.demo.service.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
+
+@Configuration
+public class BeansConfiguration {
+
+    // --- Core Handlers ---
+    @Bean
+    public ObjectChangeHandler createObjectChangeHandler() {
+        return new CreateObjectChangeHandler();
+    }
+
+    @Bean
+    public ObjectChangeHandler updateObjectChangeHandler(ApplicationContext context) {
+        return new UpdateObjectChangeHandler(context);
+    }
+
+    @Bean
+    public ChangeHandler changeHandler(List<ObjectChangeHandler> handlers) {
+        return new ChangeHandler(handlers);
+    }
+
+    // --- Conditional Backend Beans ---
+    @Bean
+    @ConditionalOnProperty(name = "service.backend", havingValue = "true", matchIfMissing = false)
+    public BackgroundService backgroundService() {
+        return new BackgroundServiceImpl();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "service.backend", havingValue = "true", matchIfMissing = false)
+    public PendingItemService pendingItemService(BackgroundService backgroundService) {
+        return new PendingItemServiceImpl(backgroundService);
+    }
+}
+
+6️⃣ Controller
+package com.example.demo.controller;
+
+import com.example.demo.handler.ChangeHandler;
+import com.example.demo.model.ChangeObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/changes")
+public class ChangeController {
+
+    private final ChangeHandler changeHandler;
+
+    public ChangeController(ChangeHandler changeHandler) {
+        this.changeHandler = changeHandler;
+    }
+
+    @PostMapping
+    public ResponseEntity<String> handleChange(@RequestBody ChangeObject change) {
+        String result = changeHandler.process(change);
+        return ResponseEntity.ok(result);
+    }
+}
+
+7️⃣ application.properties
+# When true, backend beans (BackgroundService & PendingItemService) are created
+service.backend=true
+
+
+Setting service.backend=false disables backend beans entirely.
+
+✅ Behavior Summary
+Property (service.backend)	ChangeType	needsBackendCall	Outcome
+true	CREATE	any	Local create handling
+true	UPDATE	true	Calls backend service
+true	UPDATE	false	Local update handling
+false	any	any	Local-only handling (no backend beans)
+✅ Advantages
+
+✅ All beans configured explicitly via BeansConfiguration
+
+✅ Conditional bean creation (no unnecessary backend dependencies)
+
+✅ Thin REST controller — delegates logic to handlers
+
+✅ Extensible — easily add DeleteObjectChangeHandler later
+
+✅ Testable — handlers can be tested in isolation
+
+✅ Works with Spring Boot 2.7.x + Java 8
+
+Would you like me to now add a unit test suite (using JUnit 5 + Mockito) to verify that:
+
+backend beans are only loaded when service.backend=true
+
+ChangeHandler delegates to the right handler
+
+UpdateObjectChangeHandler calls backend only when expected?
