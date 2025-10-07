@@ -411,6 +411,179 @@ Decoupled → tests only the controller’s behavior and request mapping.
 
 Verifies delegation → ensures controller forwards the right ObjectChange to the facade.
 
+
+####
+
+✅ Refactored Architecture Overview
+
+Components:
+
+ChangeType — enum (CREATE, UPDATE, DELETE)
+
+ChangeObject — data class with type, payload, and needsBackendCall
+
+BackgroundService — handles the backend HTTP call
+
+PendingItemService — wraps background service logic
+
+ChangeHandler — orchestrates which sub-handler to call
+
+CreateObjectChangeHandler and UpdateObjectChangeHandler — specific handlers
+
+ChangeController — thin REST entry point, delegates to ChangeHandler
+
+✅ 1. The Model
+public enum ChangeType {
+    CREATE, UPDATE, DELETE
+}
+
+public class ChangeObject {
+    private ChangeType type;
+    private String payload;
+    private boolean needsBackendCall;
+
+    // Constructors, getters, setters
+}
+
+✅ 2. Background and Pending Services
+public interface BackgroundService {
+    void sendToBackend(String data);
+}
+
+@Service
+@ConditionalOnProperty(name = "service.backend", havingValue = "true", matchIfMissing = false)
+public class BackgroundServiceImpl implements BackgroundService {
+    @Override
+    public void sendToBackend(String data) {
+        System.out.println("Sending to backend: " + data);
+    }
+}
+
+public interface PendingItemService {
+    void processChange(ChangeObject change);
+}
+
+@Service
+@ConditionalOnProperty(name = "service.backend", havingValue = "true", matchIfMissing = false)
+public class PendingItemServiceImpl implements PendingItemService {
+
+    private final BackgroundService backgroundService;
+
+    public PendingItemServiceImpl(BackgroundService backgroundService) {
+        this.backgroundService = backgroundService;
+    }
+
+    @Override
+    public void processChange(ChangeObject change) {
+        backgroundService.sendToBackend(change.getPayload());
+    }
+}
+
+✅ 3. Change Handlers
+Common interface:
+public interface ObjectChangeHandler {
+    boolean supports(ChangeType type);
+    String handle(ChangeObject change);
+}
+
+Create Handler:
+@Component
+public class CreateObjectChangeHandler implements ObjectChangeHandler {
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.CREATE;
+    }
+
+    @Override
+    public String handle(ChangeObject change) {
+        return "Handled CREATE change locally: " + change.getPayload();
+    }
+}
+
+Update Handler:
+@Component
+public class UpdateObjectChangeHandler implements ObjectChangeHandler {
+
+    private final ApplicationContext context;
+
+    public UpdateObjectChangeHandler(ApplicationContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public boolean supports(ChangeType type) {
+        return type == ChangeType.UPDATE;
+    }
+
+    @Override
+    public String handle(ChangeObject change) {
+        if (change.isNeedsBackendCall() && context.containsBean("pendingItemServiceImpl")) {
+            PendingItemService service = context.getBean(PendingItemService.class);
+            service.processChange(change);
+            return "Handled UPDATE with backend.";
+        }
+        return "Handled UPDATE locally.";
+    }
+}
+
+✅ 4. Central ChangeHandler Orchestrator
+@Service
+public class ChangeHandler {
+
+    private final List<ObjectChangeHandler> handlers;
+
+    public ChangeHandler(List<ObjectChangeHandler> handlers) {
+        this.handlers = handlers;
+    }
+
+    public String process(ChangeObject change) {
+        return handlers.stream()
+                .filter(handler -> handler.supports(change.getType()))
+                .findFirst()
+                .orElseThrow(() -> new UnsupportedOperationException("Unsupported change type: " + change.getType()))
+                .handle(change);
+    }
+}
+
+✅ 5. The Rest Controller
+@RestController
+@RequestMapping("/api/changes")
+public class ChangeController {
+
+    private final ChangeHandler changeHandler;
+
+    public ChangeController(ChangeHandler changeHandler) {
+        this.changeHandler = changeHandler;
+    }
+
+    @PostMapping
+    public ResponseEntity<String> handleChange(@RequestBody ChangeObject change) {
+        String result = changeHandler.process(change);
+        return ResponseEntity.ok(result);
+    }
+}
+
+✅ Behavior Matrix
+service.backend	ChangeType	needsBackendCall	Outcome
+true	UPDATE	true	Calls PendingItemService → BackgroundService
+true	UPDATE	false	Local handling
+false	UPDATE	true	Local handling (bean missing)
+any	CREATE	any	Local handling
+any	DELETE	any	Throws UnsupportedOperationException (for now)
+✅ Advantages
+
+Controller is super clean — just delegates.
+
+The handler system is open for extension.
+
+Conditional bean loading for backend logic remains.
+
+Each handler can be tested in isolation.
+
+Adding a new type (e.g., DELETE) = new class, no changes elsewhere.
+
+👉 Would you like me to show you how to unit test this new handler setup (mocking ApplicationContext and verifying delegation)?
 Readable → you can check HTTP request → expected HTTP response clearly.
 
 👉 Do you also want me to add a negative test (e.g., invalid JSON or missing body) to ensure your controller returns 400 Bad Request gracefully?
